@@ -41,10 +41,12 @@ t3m1 <- glmer(formula=havenot2~ginicnty+income_i+ginicnty:income_i+income_cnty+b
               data=pew3, family=binomial(link="logit"))
 summary(t3m1)
 
-roper.codebook <- function(file) {
+read.roper <- function(data, codebook, dir="") {
     require(readr)
-    system(paste0("java -jar pdfbox-app-1.8.9.jar ExtractText \"", file, "\""))
-    cb <- readLines(gsub(".pdf", ".txt", file))
+    if(!file.exists(data) & dir!="") data <- paste0(dir, "/", data)
+    if(!file.exists(codebook) & dir!="") codebook <- paste0(dir, "/", codebook)
+    system(paste0("java -jar pdfbox-app-1.8.9.jar ExtractText \"", codebook, "\""))
+    cb <- readLines(gsub(".pdf", ".txt", codebook))
     start.line <- grep("Variable\\s+Rec.*", cb, ignore.case=T)
     stop.line <- grep("weight\\s+[12].*", cb, ignore.case=T)
     cb <- cb[start.line:stop.line]
@@ -55,25 +57,21 @@ roper.codebook <- function(file) {
     t1 <- t1[t1$Rec=="1", c(1, 3:4)]
     names(t1) <- tolower(names(t1))
     rownames(t1) <- NULL
-    t1
+    read_fwf(data, fwf_positions(t1$start, t1$end, t1$variable))
 }
-cb2005 <- roper.codebook("Roper/uspew2005-12nii.pdf")                 
-cb1999 <- roper.codebook("Roper/uspew1999-typo.pdf")
-p2005 <- read_fwf("Roper/p12nii.dat", fwf_positions(cb2005$start, cb2005$end, cb2005$variable))
 
-datasets <- list.files("Roper/", ".pdf")
-datasets <- data.frame(cb = c(datasets[1:5], datasets[5:11]), stringsAsFactors = F)
-t <- data.frame(data = list.files("Roper/", ".dat"), stringsAsFactors = F)
-datasets <- cbind(datasets, t)
+p1999 <- read.roper(pew.data$data[1], pew.data$cb[1], dir="Roper")
 
 pew.data <- data.frame(name = c("pew1999t", "pew2004t", "pew2005n", "pew2006i", 
                                 "pew2007r", "pew2007r", "pew2010p", "pew2011p", 
                                 "pew2011s", "pew2011t", "pew2012s", "pew2014t"), 
                        year = c("1999", "2004", "2005", "2006", "2007", "2007",
                                 "2010", "2011", "2011", "2011", "2012", "2014"),
-                       data = c("typo99.dat", "P04TYPO.dat", "p201009pi.dat",
-                                "p201112pol.dat", "p2001sdt09.dat", "p2011typo.dat", 
-                                "p2012sdt07.dat", "p2014typo.dat"), 
+                       data = c("typo99.dat", "P04TYPO.dat", 
+                                "p12nii.dat", "P06IMM.dat", "p2007rel_ah.dat", 
+                                "p2007rel_us.dat", "p201009pi.dat", 
+                                "p201112pol.dat", "p2001sdt09.dat", 
+                                "p2011typo.dat", "p2012sdt07.dat", "p2014typo.dat"),
                        cb = c("uspew1999-typo.pdf", "USPEW2004-TYPO.pdf", 
                               "uspew2005-12nii.pdf", "USPEW2006-IMM.pdf", 
                               "uspew2007-rel.pdf", "uspew2007-rel.pdf", 
@@ -81,4 +79,3 @@ pew.data <- data.frame(name = c("pew1999t", "pew2004t", "pew2005n", "pew2006i",
                               "uspew2011-sdt09.pdf", "uspew2011-typo.pdf", 
                               "uspew2012-sdt07.pdf", "uspew2014-typo.pdf"), 
                        stringsAsFactors = F)
-
