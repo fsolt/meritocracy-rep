@@ -63,7 +63,6 @@ interplot <- function(m, var1, var2, xlab=NULL, ylab=NULL,
 }
 
 
-
 ### Read data: http://thedata.harvard.edu/dvn/dv/ajps/faces/study/StudyPage.xhtml?studyId=93632&tab=files
 pew1 <- read_tsv("study_26584/Meritocracy Replication Data - Table 1.tab") # Combined Pew surveys
 pew1.w <- pew1[pew1$white==1,]  # Only white respondents
@@ -78,6 +77,7 @@ pew1$year <- 2005
 pew1$year[pew1$survid2006==1] <- 2006
 pew1$year[pew1$survid2007==1] <- 2007
 pew1$year[pew1$survid2009==1] <- 2009
+
 
 ### Analyses
 # Table 1, Model 1
@@ -137,6 +137,7 @@ t3m1 <- glmer(formula=havenot2~ginicnty+income_i+ginicnty:income_i+income_cnty+b
               data=pew3, family=binomial(link="logit"))
 summary(t3m1)
 
+
 # Appendix B Table 1, Model 1
 pew1.0506 <- pew1[pew1$year<=2006, ] 
 b1m1 <- glmer(formula=meritocracy~ginicnty+income_i+ginicnty:income_i+income_cnty+black_cnty+
@@ -145,115 +146,8 @@ b1m1 <- glmer(formula=meritocracy~ginicnty+income_i+ginicnty:income_i+income_cnt
               data=pew1.0506, family=binomial(link="logit"))
 summary(b1m1)
 
+##### Starting fresh (at least at the individual level)
 
-
-# Replicate with other Pew data
-read.roper <- function(data, codebook, dir="", last.var="weight") {
-    require(readr)
-    if(!file.exists(data) & dir!="") data <- paste0(dir, "/", data)
-    if(!file.exists(codebook) & dir!="") codebook <- paste0(dir, "/", codebook)
-    system(paste0("java -jar pdfbox-app-1.8.9.jar ExtractText \"", codebook, "\""))
-    cb <- readLines(gsub(".pdf", ".txt", codebook))
-    start.line <- grep("Variable\\s+Rec\\s+.*", cb, ignore.case=T)
-    stop.line <- grep(paste0(last.var, "\\s+[12].*"), cb, ignore.case=T)
-    cb <- cb[start.line:stop.line]
-    cb1 <- gsub("\\s+", ",", cb)
-    t <- tempfile()
-    writeLines(cb1, t)
-    t1 <- read_csv(t)
-    t1 <- t1[t1$Rec=="1", c(1, 3:4)]
-    names(t1) <- tolower(names(t1))
-    rownames(t1) <- NULL
-    read_fwf(data, fwf_positions(t1$start, t1$end, t1$variable))
-}
-
-
-
-pew.data <- data.frame(name = c("pew1999t", "pew2004t", "pew2005n", "pew2006i", 
-                                "pew2007r", "pew2007r", "pew2010p", "pew2011p", 
-                                "pew2011s", "pew2011t", "pew2012s", "pew2014t"), 
-                       year = c("1999", "2004", "2005", "2006", "2007", "2007",
-                                "2010", "2011", "2011", "2011", "2012", "2014"),
-                       data = c("typo99.dat", "P04TYPO.dat", 
-                                "p12nii.dat", "P06IMM.dat", "p2007rel_ah.dat", 
-                                "p2007rel_us.dat", "p201009pi.dat", 
-                                "p201112pol.dat", "p2001sdt09.dat", 
-                                "p2011typo.dat", "p2012sdt07.dat", "p2014typo.dat"),
-                       cb = c("uspew1999-typo.pdf", "USPEW2004-TYPO.pdf", 
-                              "uspew2005-12nii.pdf", "USPEW2006-IMM.pdf", 
-                              "uspew2007-rel.pdf", "uspew2007-rel.pdf", 
-                              "uspew2010-09pi.pdf", "uspew2011-12pol.pdf", 
-                              "uspew2011-sdt09.pdf", "uspew2011-typo.pdf", 
-                              "uspew2012-sdt07.pdf", "uspew2014-typo.pdf"), 
-                       stringsAsFactors = F)
-
-p1999 <- read.roper(pew.data$data[1], pew.data$cb[1], dir="Roper")
-
-
-
-# County-level vars
-pew1.cnty <- pew1 %>% group_by(fips) %>% summarise_each(funs(mean, n_distinct)) %>%
-                select(matches("cnty|fips|bush"))
-
-summary(pew1.cnty) # confirm one distinct value per county
-
-pew1.cnty <- pew1 %>% group_by(fips) %>% summarise_each(funs(mean)) %>%
-    select(matches("cnty|fips|bush"))
-
-
-# Pew 2007
-#p2007 <- read.roper(pew.data$data[6], pew.data$cb[6], dir="Roper", last.var="pvote04b")
-p2007 <- read_sav("Pew/dataset_Religious_Landscape_Survey_Data/Religious Landscape Survey Data - Continental US.sav")
-
-p2007x <- data.frame(
-    resp = p2007$psraid,
-#    fips = p2007$qfips,
-    state = as.numeric(p2007$state),
-    rej_merit = ifelse(p2007$q5c<=2, p2007$q5c-1, NA),
-    income = ifelse(p2007$income<=9, p2007$income, NA), # 1 to 9
-    educ = ifelse(p2007$educ<=7, p2007$educ, NA), # 1 to 7
-    age = ifelse(p2007$age<99, p2007$age, NA),
-    male = ifelse(p2007$sex==1, 1, 0),
-    white = ifelse(p2007$race==1 & p2007$hisp!=1, 1, 0),
-#    union = ifelse(p2007$labor<=3, 1, ifelse(p2007$labor==4, 0, NA)), # not asked this survey
-    ideo = 6 - ifelse(p2007$ideo<=5, p2007$ideo, NA), # 1 to 5
-    attend = 7 - ifelse(p2007$q20<=6, p2007$q20, NA) # 1 to 6
-)
-p2007x$partyid <- mapvalues(p2007$party, 
-                            from = c(1:5, 9), 
-                            to = c(5, 1, 3, 3, 3, NA))
-p2007x$partyid[p2007$partyln==1] <- 4
-p2007x$partyid[p2007$partyln==2] <- 2
-
-# p2007x$unemp <- ifelse(p2007$employ==3 & p2007$employ2==4, 1, 0) # not asked this survey
-# p2007x$unemp[p2007$employ==9 | p2007$employ2==9] <- NA
-
-p2007x$year <- 2007
-p2007x.w <- p2007x[p2007x$white==1, -c(8)]
-
-t1m1.07.flat <- glm(formula = rej_merit~income+
-                       educ+age+male+partyid+ideo+attend,
-                   data=p2007x.w, family=binomial(link="logit"))
-
-t1m1.07.x <- glmer(formula = rej_merit~income+
-                  educ+age+male+partyid+ideo+attend+
-                  (1+income|state),
-            data=p2007x.w, family=binomial(link="logit"))
-
-t1m1.06.x <- glmer(formula = rej_merit~income+
-                       educ+age+male+partyid+ideo+attend+
-                       (1|state),
-                   data=p2006x.w, family=binomial(link="logit"))
-
-# missing county info; I requested via Pew contact webpage 4/12;
-#   called 4/15: Charles in Communications says he'll email the
-#   form to start "the process"
-
-# Pew 2011 Generational Change has FIPS (at least in Pew version; check Roper 2011std)
-
-
-
-#####Starting from raw data
 # Pew 2005 News Interest Index
 p2005 <- read_sav("Pew/Dec05/Dec05c.sav")
 
@@ -290,6 +184,9 @@ p2005x$unemp <- ifelse((p2005$employ==3 | p2005$employ==9), NA, 0) # No employ2 
 #                              to = c(102, 52, 18, 5, 2, 0, NA))
 
 p2005x$year <- 2005
+p2005x.w <- p2005x[p2005x$white==1, -c(9)]
+
+
 
 # Pew 2006 Immigration Survey
 p2006 <- read_sav("Pew/Immigration06/Mar06 Immigrationc.sav")
@@ -332,12 +229,16 @@ p2006x$year <- 2006
 p2006x.w <- p2006x[p2006x$white==1, -c(9)]
 
 
+
+
+
+# Combine 2005 and 2006
 p1x <- rbind(p2005x, p2006x)
 
 pew1.cnty <- pew1 %>% group_by(fips) %>% summarise_each(funs(mean)) %>%
     select(matches("cnty|fips|bush"))   # I've confirmed that there's just one value per county 
 
-acs0509 <- read_csv("b19083_001e.csv")
+acs0509 <- read_csv("b19083_001e.csv") # income distribution data from five-year ACS
 acs0509$fips <- as.numeric(gsub("05000US", "", acs0509$geoid))
 acs0509$gini_cnty <- acs0509$b19083_001e
 acs0509c <- acs0509[ , 7:8]
@@ -350,6 +251,18 @@ p1x.w <- p1x[p1x$white==1, -c(9)]
 p1x.w.sc <- p1x[p1x$white==1, c(1:3)]
 
 # Rowwise deletion
+t1m1.05 <- glmer(formula = rej_merit~gini_cnty+income+gini_cnty:income+
+                     income_cnty+black_cnty+perc_bush04+pop_cnty+
+                     educ+age+male+unemp+union+partyid+ideo+attend+
+                     (1+income|fips),
+                 data=p2005x.w,family=binomial(link="logit"))
+
+t1m1.06 <- glmer(formula = rej_merit~gini_cnty+income+gini_cnty:income+
+                     income_cnty+black_cnty+perc_bush04+pop_cnty+
+                     educ+age+male+unemp+union+partyid+ideo+attend+
+                     (1+income|fips),
+                 data=p2006x.w,family=binomial(link="logit"))
+
 b1m1.r <- glmer(formula = rej_merit~gini_cnty+income+gini_cnty:income+
                         income_cnty+black_cnty+perc_bush04+pop_cnty+
                         educ+age+male+unemp+union+partyid+ideo+attend+
@@ -357,7 +270,7 @@ b1m1.r <- glmer(formula = rej_merit~gini_cnty+income+gini_cnty:income+
                     data=p1x.w, family=binomial(link="logit"))
 
 
-# mi
+# Multiply impute missing values with mi
 p1x.w.info <- mi.info(p1x.w)
 p1x.w.info <- update(p1x.w.info, "include", list(fips=F, state=F))
 p1x.w.info <- update(p1x.w.info, "type", list(
@@ -370,131 +283,76 @@ p1x.w.mi <- mi(p1x.w.pre, n.imp=10, n.iter=30, seed=324, max.minutes=60)
 
 p1x.w.mi.list <- mi.completed(p1x.w.mi)
 p1x.w.mi.list2 <- imputationList(p1x.w.mi.list)
-t1m1.mi.list2 <- with(p1x.w.mi.list2, 
+b1m1.mi <- with(p1x.w.mi.list2, 
     glmer(formula = rej_merit~gini_cnty+income+gini_cnty:income+
               income_cnty+black_cnty+perc_bush04+pop_cnty+
               educ+age+male+unemp+union+partyid+ideo+attend+
               (1+income|fips), family=binomial(link="logit")))
-t1m1.mi.fe <- MIextract(t1m1.mi.list2, fun=fixef) # https://books.google.com/books?id=EbLrQrBGid8C&pg=PA384
-t1m1.mi.vars <- MIextract(t1m1.mi.list2, fun=vcov)
-t1m1.mi.vars2 <- list()
-for(i in 1:10) {
-    t1m1.mi.vars2[[i]] <- as.matrix(t1m1.mi.vars[[i]])
-}
-t1m1.mi.res <- MIcombine(t1m1.mi.fe, t1m1.mi.vars2)
-summary(t1m1.mi.res)
+b1m1.mi.fe <- MIextract(b1m1.mi, fun=fixef) # https://books.google.com/books?id=EbLrQrBGid8C&pg=PA384
+b1m1.mi.vars <- MIextract(b1m1.mi, fun=vcov)
+b1m1.mi.vars2 <- list()
+b1m1.mi.vars2 <- lapply(b1m1.mi.vars, as.matrix)
+b1m1.mi.res <- MIcombine(b1m1.mi.fe, b1m1.mi.vars2)
+summary(b1m1.mi.res)
 
 t <- arm::sim(t1m1.mi.res)
 
 
+# Pew 2007
+# missing county info; I requested via Pew contact webpage 4/12;
+#   called 4/15: Charles in Communications says he'll email the
+#   form to start "the process"
 
+p2007 <- read_sav("Pew/dataset_Religious_Landscape_Survey_Data/Religious Landscape Survey Data - Continental US.sav")
 
-library(Zelig)
-library(ZeligMultilevel)
-t1m1.mi.zelig <- zelig(formula = rej_merit~gini_cnty+income+gini_cnty:income+
-                      income_cnty+black_cnty+perc_bush04+pop_cnty+
-                      educ+age+male+unemp+union+partyid+ideo+attend+
-                      tag(1+income|fips),
-                  data=p1x.w.mi.list, model="logit.mixed")
+p2007x <- data.frame(
+    resp = p2007$psraid,
+    #    fips = p2007$qfips,
+    state = as.numeric(p2007$state),
+    rej_merit = ifelse(p2007$q5c<=2, p2007$q5c-1, NA),
+    income = ifelse(p2007$income<=9, p2007$income, NA), # 1 to 9
+    educ = ifelse(p2007$educ<=7, p2007$educ, NA), # 1 to 7
+    age = ifelse(p2007$age<99, p2007$age, NA),
+    male = ifelse(p2007$sex==1, 1, 0),
+    white = ifelse(p2007$race==1 & p2007$hisp!=1, 1, 0),
+    #    union = ifelse(p2007$labor<=3, 1, ifelse(p2007$labor==4, 0, NA)), # not asked this survey
+    ideo = 6 - ifelse(p2007$ideo<=5, p2007$ideo, NA), # 1 to 5
+    attend = 7 - ifelse(p2007$q20<=6, p2007$q20, NA) # 1 to 6
+)
+p2007x$partyid <- mapvalues(p2007$party, 
+                            from = c(1:5, 9), 
+                            to = c(5, 1, 3, 3, 3, NA))
+p2007x$partyid[p2007$partyln==1] <- 4
+p2007x$partyid[p2007$partyln==2] <- 2
 
-interplot(t1m1.mi.list[[2]], "gini_cnty", "income")
+# p2007x$unemp <- ifelse(p2007$employ==3 & p2007$employ2==4, 1, 0) # not asked this survey
+# p2007x$unemp[p2007$employ==9 | p2007$employ2==9] <- NA
 
-# mice
-library(mice)
-p1x.w.mice <- mice(p1x.w)
+p2007x$year <- 2007
+p2007x.w <- p2007x[p2007x$white==1, -c(8)]
 
-t1m1x.w <- with(p1x.w, glmer(formula = rej_merit~gini_cnty+income0+gini_cnty:income0+
-                     income_cnty+black_cnty+perc_bush04+pop_cnty+
-                     educ0+age+male+unemp+union+partyid+ideo0+attend0+
-                     (1+income0|fips),
-                 data=p1x.w.mice, family=binomial(link="logit")))
-summary(t1m1x.w)
+t1m1.07.flat <- glm(formula = rej_merit~income+
+                        educ+age+male+partyid+ideo+attend,
+                    data=p2007x.w, family=binomial(link="logit"))
 
+t1m1.07.x <- glmer(formula = rej_merit~income+
+                       educ+age+male+partyid+ideo+attend+
+                       (1+income|state),
+                   data=p2007x.w, family=binomial(link="logit"))
 
-#Amelia
-library(Amelia)
-p1x.w.t <- log1p(p1x.w) # preprocess the data
-p1x.w.t.amelia <- amelia(p1x.w.t, seed=324)
-p1x.w.amelia <- p1x.w.t.amelia # postprocess the imputations
-p1x.w.amelia$imputations <- lapply(p1x.w.amelia$imputations, expm1) # postprocess cont.
-p1x.w.amelia$imputations <- lapply(p1x.w.amelia$imputations, function(i) {
-    i[4] <- p1x.w[4]
-}) # postprocess cont. 
+t1m1.06.x <- glmer(formula = rej_merit~income+
+                       educ+age+male+partyid+ideo+attend+
+                       (1|state),
+                   data=p2006x.w, family=binomial(link="logit"))
 
-
-t1m1.am.zelig <- zelig(formula = rej_merit~gini_cnty+income+gini_cnty:income+
-                           income_cnty+black_cnty+perc_bush04+pop_cnty+
-                           educ+age+male+unemp+union+partyid+ideo+attend+
-                           tag(1+income|fips),
-                       data=p1x.w.amelia, model="logit.mixed")
-
-
-
-
-t1m1.amelia <- lapply(p1x.w.amelia$imputations, function(i) {
-    glmer(formula = rej_merit~gini_cnty+income+gini_cnty:income+
-              income_cnty+black_cnty+perc_bush04+pop_cnty+
-              educ+age+male+unemp+union+partyid+ideo+attend+
-              (1+income|fips),
-          data=i, family=binomial(link="logit"))
-})
-
-
-
-t1m1.amelia1 <- glmer(formula = rej_merit~gini_cnty+income+gini_cnty:income+
-                          income_cnty+black_cnty+perc_bush04+pop_cnty+
-                          educ+age+male+unemp+union+partyid+ideo+attend+
-                          (1+income|fips),
-                      data=p1x.w.amelia$imputations$imp1 , family=binomial(link="logit"))
+t1m1.05.x <- glmer(formula = rej_merit~income+
+                       educ+age+male+partyid+ideo+attend+
+                       (1|state),
+                   data=p2005x.w, family=binomial(link="logit"))
 
 
 
-t1m1.amelia <- with(p1x.w, glmer(formula = rej_merit~gini_cnty+income0+gini_cnty:income0+
-                                 income_cnty+black_cnty+perc_bush04+pop_cnty+
-                                 educ0+age+male+unemp+union+partyid+ideo0+attend0+
-                                 (1+income0|fips),
-                             data=p1x.w.mice, family=binomial(link="logit")))
+# Pew 2011 Generational Change has FIPS (at least in Pew version; check Roper 2011std)
 
 
 
-pew1.cnty <- pew1 %>% group_by(fips) %>% summarise_each(funs(mean)) %>%
-    select(matches("cnty|fips|bush"))
-
-acs0509 <- read_csv("b19083_001e.csv")
-acs0509$fips <- as.numeric(gsub("05000US", "", acs0509$geoid))
-acs0509$gini_cnty <- acs0509$b19083_001e
-acs0509c <- acs0509[ , 7:8]
-
-p2006x <- left_join(p2006x, pew1.cnty)
-p2006x <- left_join(p2006x, acs0509c)
-
-p2006x.w <- p2006x[p2006x$white==1, ]
-
-# Table 1, Model 1 redo
-t1m1.06 <- glmer(formula = rej_merit~gini_cnty+income0+gini_cnty:income0+
-                       income_cnty+black_cnty+perc_bush04+pop_cnty+
-                       educ0+age+male+unemp+union+partyid+ideo0+attend0+
-                       (1+income0|fips),
-                   data=p2006x, family=binomial(link="logit"))
-summary(t1m1.06)
-
-t1m1.06.w <- glmer(formula = rej_merit~gini_cnty+income0+gini_cnty:income0+
-                       income_cnty+black_cnty+perc_bush04+pop_cnty+
-                       educ0+age+male+unemp+union+partyid+ideo0+attend0+
-                       (1+income0|fips),
-              data=p2006x.w,family=binomial(link="logit"))
-summary(t1m1.06.w)
-
-interplot(t1m1.06.w, "gini_cnty", "income0")
-
-t1m1.06.w2 <- glmer(formula = rej_merit~gini_cnty+income_b+gini_cnty:income_b+
-                       income_cnty+black_cnty+perc_bush04+pop_cnty+
-                       educ_b+age+male+unemp+union+partyid+ideo+attend_b+
-                       (1|fips),
-                   data=p2006x.w,family=binomial(link="logit"))
-summary(t1m1.06.w2)
-
-interplot(t1m1.06.w2, "gini_cnty", "income_b")
-
-
-summary(p2006x.w)
