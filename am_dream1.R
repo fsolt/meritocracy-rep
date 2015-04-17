@@ -11,18 +11,39 @@ library(mi)
 library(mitools)
 
 interplot <- function(m, var1, var2, xlab=NULL, ylab=NULL, 
-                      seed=324, sims=1000, steps=100, plot=TRUE) {
+                      seed=324, sims=1000, steps=100, xmin=NA,
+                      xmax=NA, labels=NULL, plot=TRUE) {
     require(arm)
     require(ggplot2)
+    require(abind)
     set.seed(seed)
-    m.sims <- arm::sim(m, sims)
+    if (class(m)=="list") {
+        m.list <- m
+        m <- m.list[[1]]
+        m.class <- class(m)
+        m.sims.list <- lapply(m.list, function(i) arm::sim(i, sims))
+        m.sims <- m.sims.list[[1]]
+        if (m.class=="lmerMod" | m.class=="glmerMod") {
+            for(i in 2:length(m.sims.list)) {
+                m.sims@fixef <- rbind(m.sims@fixef, m.sims.list[[i]]@fixef)
+                m.sims@ranef[[1]] <- abind(m.sims@ranef[[1]], m.sims.list[[i]]@ranef[[1]], along=1)
+            }
+        } else {
+            stop(paste("Multiply imputed flat models not implemented yet"))
+        }
+    } else {
+        m.class <- class(m)
+        m.sims <- arm::sim(m, sims)
+    }
     var12 <- paste0(var2,":",var1)
-    if(class(m)!="lmerMod" & class(m)!="glmerMod"){
+    if(m.class!="lmerMod" & m.class!="glmerMod"){
         if (!var12 %in% names(m$coef)) var12 <- paste0(var1,":",var2)
         if (!var12 %in% names(m$coef)) stop(paste("Model does not include the interaction of",var1 ,"and",var2))
-        coef <- data.frame(fake = seq(min(m$model[var2], na.rm=T), max(m$model[var2], na.rm=T), length.out=steps), coef1 = NA, ub = NA, lb = NA)
+        if (is.na(xmin)) xmin <- min(m$model[var2], na.rm=T)
+        if (is.na(xmax)) xmax <- max(m$model[var2], na.rm=T)
+        coef <- data.frame(fake = seq(xmin, xmax, length.out=steps), coef1 = NA, ub = NA, lb = NA)
         
-        for(i in 1:steps) {   
+        for(i in 1:steps) {    
             coef$coef1[i] <- mean(m.sims@coef[,match(var1, names(m$coef))] + 
                                       coef$fake[i]*m.sims@coef[,match(var12, names(m$coef))])
             coef$ub[i] <- quantile(m.sims@coef[,match(var1, names(m$coef))] + 
@@ -30,10 +51,12 @@ interplot <- function(m, var1, var2, xlab=NULL, ylab=NULL,
             coef$lb[i] <- quantile(m.sims@coef[,match(var1, names(m$coef))] + 
                                        coef$fake[i]*m.sims@coef[,match(var12, names(m$coef))], .025)    
         }
-    }else{
+    } else {
         if (!var12 %in% unlist(dimnames(m@pp$X)[2])) var12 <- paste0(var1,":",var2)
         if (!var12 %in% unlist(dimnames(m@pp$X)[2])) stop(paste("Model does not include the interaction of",var1 ,"and",var2))
-        coef <- data.frame(fake = seq(min(m@frame[var2], na.rm=T), max(m@frame[var2], na.rm=T), length.out=steps), coef1 = NA, ub = NA, lb = NA)
+        if (is.na(xmin)) xmin <- min(m@frame[var2], na.rm=T)
+        if (is.na(xmax)) xmax <- max(m@frame[var2], na.rm=T)        
+        coef <- data.frame(fake = seq(xmin, xmax, length.out=steps), coef1 = NA, ub = NA, lb = NA)
         
         for(i in 1:steps) {   
             coef$coef1[i] <- mean(m.sims@fixef[,match(var1, unlist(dimnames(m@pp$X)[2]))] + 
@@ -44,16 +67,24 @@ interplot <- function(m, var1, var2, xlab=NULL, ylab=NULL,
                                        coef$fake[i]*m.sims@fixef[,match(var12, unlist(dimnames(m@pp$X)[2]))], .025)    
         }   
     }
-    if(plot==TRUE) {
-        if(steps>5) {
-            coef.plot <- ggplot(coef, aes(x = fake, y = coef1)) +                       
-                geom_line() + geom_ribbon(aes(ymin=lb, ymax=ub), alpha=.5) + theme_bw()+
-                ylab(ylab) + xlab(xlab)
+    if (plot==TRUE) {
+        if(steps>10) {
+            coef.plot <- ggplot(coef, aes(x = fake, y = coef1)) + 
+                geom_line() + geom_ribbon(aes(ymin=lb, ymax=ub), alpha=.5) +
+                theme_bw() + ylab(ylab) + xlab(xlab)
         } else {
-            coef.plot <- ggplot(coef, aes(x = fake, y = coef1)) +                       
-                geom_point() + geom_errorbar(aes(ymin=lb, ymax=ub), width=0) + 
-                scale_x_continuous(breaks = 0:steps) + theme_bw()+
-                ylab(ylab) + xlab(xlab)
+            if (is.null(labels)) {
+                coef.plot <- ggplot(coef, aes(x = fake, y = coef1)) + 
+                    geom_point() + geom_errorbar(aes(ymin=lb, ymax=ub), width=0) +
+                    scale_x_continuous(breaks = seq(min(coef$fake), max(coef$fake), length.out=steps)) +
+                    theme_bw() + ylab(ylab) + xlab(xlab)
+            } else {
+                coef.plot <- ggplot(coef, aes(x = fake, y = coef1)) + 
+                    geom_point() + geom_errorbar(aes(ymin=lb, ymax=ub), width=0) +
+                    scale_x_continuous(breaks = seq(min(coef$fake), max(coef$fake), length.out=steps),
+                                       labels = labels) +
+                    theme_bw() + ylab(ylab) + xlab(xlab)
+            } 
         }
         return(coef.plot)
     } else {
@@ -62,8 +93,7 @@ interplot <- function(m, var1, var2, xlab=NULL, ylab=NULL,
     }
 }
 
-
-### Read data: http://thedata.harvard.edu/dvn/dv/ajps/faces/study/StudyPage.xhtml?studyId=93632&tab=files
+### Read data: https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/26584
 pew1 <- read_tsv("study_26584/Meritocracy Replication Data - Table 1.tab") # Combined Pew surveys
 pew1.w <- pew1[pew1$white==1,]  # Only white respondents
 
@@ -87,8 +117,25 @@ t1m1 <- glmer(formula=meritocracy~ginicnty+income_i+ginicnty:income_i+income_cnt
               data=pew1.w,family=binomial(link="logit"))
 summary(t1m1)
 
-interplot(t1m1, "ginicnty", "income_i")
-t1m1.gc.coef <- interplot(t1m1, "ginicnty", "income_i", plot=F)
+# plot interaction
+t <- data.frame(table(pew1.w$income_i))
+names(t) <- c("income_i", "freq")
+t <- t[t$freq>10, ] # include only observed values (exclude imputed values)
+t$income_i <- as.numeric(levels(t$income_i))[t$income_i]
+t$inc_labels <- c("<$10k", "$10-20k", "$20-30k", "$30-40k", "$40-50k",
+                  "$50-75k", "$75-100k", "$100-150k", ">$150k")
+
+t1m1.plot <- interplot(t1m1, "ginicnty", "income_i",
+                       xmin = min(t$income_i), xmax = max(t$income_i),
+                       steps = 9, labels = t$inc_labels,
+                       xlab = "Family Income",
+                       ylab = "County Income Inequality")
+t1m1.plot <- t1m1.plot + geom_hline(yintercept=0, colour="grey80", linetype="dashed")
+ggsave(file="t1m1_plot.pdf", plot=t1m1.plot, width=8, height=5.25)
+
+t1m1.gc.coef <- interplot(t1m1, "ginicnty", "income_i", plot=F,
+                          xmin = min(t$income_i), xmax = max(t$income_i),
+                          steps = 9)
 
 # predicted probabilities with confidence intervals (see http://glmm.wikidot.com/faq under lme4)
 newdat <- pew1 %>% summarise_each(funs(mean))
@@ -146,6 +193,7 @@ b1m1 <- glmer(formula=meritocracy~ginicnty+income_i+ginicnty:income_i+income_cnt
               data=pew1.0506, family=binomial(link="logit"))
 summary(b1m1)
 
+
 ##### Starting fresh (at least at the individual level)
 
 # Pew 2005 News Interest Index
@@ -185,7 +233,6 @@ p2005x$unemp <- ifelse((p2005$employ==3 | p2005$employ==9), NA, 0) # No employ2 
 
 p2005x$year <- 2005
 p2005x.w <- p2005x[p2005x$white==1, -c(9)]
-
 
 
 # Pew 2006 Immigration Survey
@@ -230,8 +277,6 @@ p2006x.w <- p2006x[p2006x$white==1, -c(9)]
 
 
 
-
-
 # Combine 2005 and 2006
 p1x <- rbind(p2005x, p2006x)
 
@@ -250,18 +295,19 @@ p1x <- left_join(p1x, acs0509c)
 p1x.w <- p1x[p1x$white==1, -c(9)]
 p1x.w.sc <- p1x[p1x$white==1, c(1:3)]
 
-# Rowwise deletion
-t1m1.05 <- glmer(formula = rej_merit~gini_cnty+income+gini_cnty:income+
-                     income_cnty+black_cnty+perc_bush04+pop_cnty+
-                     educ+age+male+unemp+union+partyid+ideo+attend+
-                     (1+income|fips),
-                 data=p2005x.w,family=binomial(link="logit"))
 
-t1m1.06 <- glmer(formula = rej_merit~gini_cnty+income+gini_cnty:income+
-                     income_cnty+black_cnty+perc_bush04+pop_cnty+
-                     educ+age+male+unemp+union+partyid+ideo+attend+
-                     (1+income|fips),
-                 data=p2006x.w,family=binomial(link="logit"))
+# Rowwise deletion
+# t1m1.05 <- glmer(formula = rej_merit~gini_cnty+income+gini_cnty:income+
+#                      income_cnty+black_cnty+perc_bush04+pop_cnty+
+#                      educ+age+male+unemp+union+partyid+ideo+attend+
+#                      (1+income|fips),
+#                  data=p2005x.w,family=binomial(link="logit"))
+# 
+# t1m1.06 <- glmer(formula = rej_merit~gini_cnty+income+gini_cnty:income+
+#                      income_cnty+black_cnty+perc_bush04+pop_cnty+
+#                      educ+age+male+unemp+union+partyid+ideo+attend+
+#                      (1+income|fips),
+#                  data=p2006x.w,family=binomial(link="logit"))
 
 b1m1.r <- glmer(formula = rej_merit~gini_cnty+income+gini_cnty:income+
                         income_cnty+black_cnty+perc_bush04+pop_cnty+
@@ -295,9 +341,16 @@ b1m1.mi.vars2 <- lapply(b1m1.mi.vars, as.matrix)
 b1m1.mi.res <- MIcombine(b1m1.mi.fe, b1m1.mi.vars2)
 summary(b1m1.mi.res)
 
-t <- arm::sim(t1m1.mi.res)
+b1m1.mi.plot <- interplot(b1m1.mi, "gini_cnty", "income", steps=9,
+                          labels = t$inc_labels,
+                          xlab = "Family Income",
+                          ylab = "County Income Inequality") 
+b1m1.mi.plot <- b1m1.mi.plot + 
+    geom_hline(yintercept=0, colour="grey80", linetype="dashed")
+ggsave(file="b1m1_mi_plot.pdf", plot=b1m1.mi.plot, width=8, height=5.25)
 
-
+b1m1.mi.coef <- interplot(b1m1.mi, "gini_cnty", "income", steps=9, plot=F)
+ 
 # Pew 2007
 # missing county info; I requested via Pew contact webpage 4/12;
 #   called 4/15: Charles in Communications says he'll email the
@@ -356,3 +409,9 @@ t1m1.05.x <- glmer(formula = rej_merit~income+
 
 
 
+# Alternate item
+val2007 <- read_sav("/Users/fredsolt/Documents/Projects/American_Dream/Pew/Values07/Values07c.sav")
+
+val2007$rej_merit <- with(val2007, as.numeric((q13e<=2) & (q13f<=2)))
+val2007$white <- ifelse(val2007$race==1 & val2007$hisp!=1, 1, 0)
+prop.table(table(val2007$rej_merit[val2007$white==1]))

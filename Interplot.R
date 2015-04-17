@@ -43,10 +43,23 @@ interplot <- function(m, var1, var2, xlab=NULL, ylab=NULL,
                       seed=313, sims=1000, steps=100, plot=TRUE) {
   require(arm)
   require(ggplot2)
+  require(abind)
   set.seed(seed)
   m.sims <- arm::sim(m, sims)
+  if(class(m)=="list") {
+      m.class <- class(m[[1]])
+      m.sims.list <- lapply(m, function(i) arm::sim(i, sims))
+      m.sims <- m.sims.list[[1]]
+      for(i in 2:length(m.sims.list)) {
+          m.sims@fixef <- rbind(m.sims@fixef, m.sims.list[[i]]@fixef)
+          m.sims@ranef[[1]] <- abind(m.sims@ranef[[1]], m.sims.list[[i]]@ranef[[1]], along=1)
+      }
+  } else {
+      m.class <- class(m)
+      m.sims <- arm::sim(m, sims)
+  }
   var12 <- paste0(var2,":",var1)
-  if(class(m)!="lmerMod" & class(m)!="glmerMod"){
+  if(m.class!="lmerMod" & m.class!="glmerMod"){
     if (!var12 %in% names(m$coef)) var12 <- paste0(var1,":",var2)
     if (!var12 %in% names(m$coef)) stop(paste("Model does not include the interaction of",var1 ,"and",var2))
     coef <- data.frame(fake = seq(min(m$model[var2], na.rm=T), max(m$model[var2], na.rm=T), length.out=steps), coef1 = NA, ub = NA, lb = NA)
