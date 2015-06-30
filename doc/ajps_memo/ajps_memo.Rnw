@@ -1,0 +1,92 @@
+\documentclass[12pt]{article}
+
+\usepackage{graphicx}      % Enable graphics commands
+\usepackage{lscape}    	% Enable landscape with \begin{landscape} until \end{landscape}
+\usepackage[section]{placeins} % Keep tables and figures within their own sections
+\usepackage{natbib}			% Enable citation commands \citep{}, \citet{}, etc.
+\bibpunct{(}{)}{;}{a}{}{,}		% Formatting for in-text citations
+\usepackage{setspace}		% Enable double-spacing with \begin{spacing}{2} until \end{spacing}.
+\usepackage[utf8]{inputenc} 	% Enable utf8 characters, i.e., accents without coding--just type them in.
+\usepackage[english]{babel}	% English hyphenation and alphabetization.  Other languages available.
+\usepackage{dcolumn}        % For decimal-aligned stargazer output.
+\usepackage[colorlinks=true, urlcolor=blue, citecolor=black, linkcolor=black]{hyperref} % Include hyperlinks with the \url and \href commands.
+\setlength{\tabcolsep}{1pt}	% Make tables slightly narrower by reducing space between columns.
+
+\renewcommand\floatpagefraction{.9}	% These commands allow larger tables and graphics to fit
+\renewcommand\topfraction{.9}		% on a page when default settings would complain.
+\renewcommand\bottomfraction{.9}
+\renewcommand\textfraction{.1}
+\setcounter{totalnumber}{50}
+\setcounter{topnumber}{50}
+\setcounter{bottomnumber}{50}
+
+\newcommand{\R}{\textsf{R}~}        %This creates the command \R to typeset the name R correctly.
+
+%\usepackage[left=1in, right=1in]{geometry}	%Turn footnotes into endnotes (commented out).
+%\renewcommand{\footnotesize}{\normalsize}	
+%\usepackage{endnotes}
+%\renewcommand{\footnote}{\endnote}
+%\renewcommand{\section}{\subsection}
+%\usepackage{fullpage}
+
+\begin{document}
+
+
+\title{Notes: Income Inequality and Belief in American Meritocracy}		
+\author{
+    Frederick Solt\\
+    \href{mailto:frederick-solt@uiowa.edu}{frederick-solt@uiowa.edu}
+}
+\date{\today}				
+\maketitle
+
+% \begin{abstract}
+%   
+% \end{abstract}
+% \newpage
+
+
+Only Table 2 can actually be replicated exactly using the replication materials.  Table 3 cannot be replicated at all: the model has more parameters than there are observations, and therefore it cannot be estimated.  The results presented in Table 1 are similar to the results reached with the replication materials, but they are misinterpreted.
+
+It has been well known for over a decade that models containing multiplicative interaction terms require particular care in interpretation \citep[see, e.g.,][]{Golder2003a, Braumoeller2004, Brambor2006, Kam2007a}.  As \citet[72]{Brambor2006} wrote, ``the coefficient on X [income] only captures the effect of X on Y [rejection of meritocracy] when Z [income inequality] is zero.''  But in the replication data for Table 1, Model 1, the range of income is (oddly) .21 to 1; the variable never takes on a value of zero.  Figure~\ref{F:coef.t1m1} plots the coefficient estimates at each of the nine levels of income in the Pew data.  The confidence intervals of these estimates all cross zero.  None are statistically significant.  The conclusion of \citet[334]{Newman2015} that this result ``reveals that among low-income citizens, those residing in highly unequal contexts are significantly more likely to reject meritocratic ideals than those in relatively equal contexts'' is therefore erroneous.
+
+\begin{figure}[htbp] 
+  \caption{Logit Coefficients of Local Income Inequality by Respondent Income: Table 1, Model 1, From Replication Data}
+  \label{F:coef.t1m1}
+  \begin{center}
+    \includegraphics[width=5.25in]{t1m1_plot.pdf}
+  \end{center}
+  \begin{footnotesize}
+  \begin{tabular}{p{.1in} p{5.1in}}
+  & \emph{Notes}: The coefficient for county income inequality fails to reach statistical significance for any observed level of respondent family income.
+  \end{tabular}
+  \end{footnotesize}
+\end{figure}
+
+The analysis is problematic on a number of other grounds that I discovered in the course of attempting to replicate it.  The dependent variable is a mix of two different survey items.  The first was asked in the 2005 Pew News Interest Index Poll and 2006 Pew Immigration Poll, and the second is a synthetic item generated from two questions asked in the 2007 and 2009 Pew Values Surveys. The authors' assertion that these two items are essentially similar and can be combined in this way is cast into grave doubt by the large difference in the mean responses to two items in 2007. In the 2007 Pew Religious Landscape Survey, unused by the authors, 30\% of white respondents rejected meritocracy by the first item; only 15\% of white respondents rejected meritocracy in the 2007 data employed by the authors.  
+
+I therefore focused my efforts on the 2005 Pew News Interest Index Poll and 2006 Pew Immigration Poll, which use only the first item.  These are the data employed by the authors in Appendix Table B1. (Efforts to replicate this table, like Table 1, yield similar but not identical results to those the authors present.  Also like Table 1, the results do not support the authors' conclusions: income inequality is not estimated to have a statistically significant positive effect on the rejection of meritocracy at any observed level of respondents' family income.)  The replication materials do not include code ``for extracting the analysis dataset from the source data (e.g., recodes, data transformations, details about missing observations, etc.)'' and the instructions required by the new \emph{AJPS} policy are somewhat incomplete--perusing the replication data makes clear that at least some variables were rescaled in ways that were left undocumented.  I have therefore reconstructed the dataset from the two Pew surveys and from the five-year American Community Survey data, leaving the variables in their original scales.
+
+This revealed that missing data in the original surveys was singly imputed in the analysis data.  Beyond the fact that the manner in which these imputations were made is undocumented in the replication materials, to impute data just once underestimates the uncertainty in the values of missing data--that's why \emph{multiple} imputation is the recommended approach for dealing with missing data.  I multiply imputed the data and used them to perform the same analysis.  Figure~\ref{F:coef.b1m1} reveals that there is again no support for the authors' contention that lower-income individuals are more likely to reject meritocracy where income inequality is greater.  
+
+
+\begin{figure}[htbp] 
+  \caption{Logit Coefficients of Local Income Inequality by Respondent Income, Table B1, White Respondents, From Source Data}
+  \label{F:coef.b1m1}
+  \begin{center}
+    \includegraphics[width=5.25in]{b1m1_mi_plot.pdf}
+  \end{center}
+  \begin{footnotesize}
+  \begin{tabular}{p{.1in} p{5.1in}}
+  & \emph{Notes}: The coefficient for county income inequality fails to reach statistical significance for any observed level of respondent family income.
+  \end{tabular}
+  \end{footnotesize}
+\end{figure}
+
+\newpage
+\pagebreak
+
+\bibliographystyle{ajps}
+\bibliography{FSLibrary}
+
+\end{document}
