@@ -1,0 +1,6 @@
+2006 Pew News Interest Survey_Table 2 Data in Stata Format.tab (text/tab-separated-values) 823710 bytes.
+Meritocracy Replication Data - Table 1.tab (text/tab-separated-values) 1518624 bytes.
+Meritocracy Replication Data - Table 3.tab (text/tab-separated-values) 239133 bytes.
+Meritocracy Replication R Code - Table 1.R (text/plain; charset=US-ASCII) 2252 bytes.
+Meritocracy Replication R Code - Table 3.R (text/plain; charset=US-ASCII) 1651 bytes.
+Model Command Code_Table 2_Stata Do File.do (text/x-stata-syntax; charset=US-ASCII) 253 bytes.

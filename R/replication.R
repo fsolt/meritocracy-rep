@@ -592,7 +592,7 @@ hhn05x$partyid[hhn05$partyln==1] <- 4
 hhn05x$partyid[hhn05$partyln==2] <- 2
 
 hhn05x$unemp <- ifelse((hhn05$employ==3 | hhn05$employ==9), NA, 0) # No employ2 in survey
-hhn05x$emp <- ifelse((hhn05$employ<=2), 1, ifelse(hhn05$employ==3, 0, NA) # employed vs. not employed
+hhn05x$emp <- ifelse((hhn05$employ<=2), 1, ifelse(hhn05$employ==3, 0, NA)) # employed vs. not employed
 
 hhn05x2 <- left_join(hhn05x, cnty_data) 
 hhn05x2.w <- hhn05x2[hhn05x2$white==1, ]
