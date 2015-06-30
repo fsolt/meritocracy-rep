@@ -10,7 +10,7 @@ library(maps)
 library(mi)
 library(mitools)
 
-interplot <- function(m, var1, var2, xlab=NULL, ylab=NULL, 
+interplot2 <- function(m, var1, var2, xlab=NULL, ylab=NULL, 
                       seed=324, sims=1000, steps=100, xmin=NA,
                       xmax=NA, labels=NULL, plot=TRUE) {
     require(arm)
@@ -125,7 +125,7 @@ t$income_i <- as.numeric(levels(t$income_i))[t$income_i]
 t$inc_labels <- c("<$10k", "$10-20k", "$20-30k", "$30-40k", "$40-50k",
                   "$50-75k", "$75-100k", "$100-150k", ">$150k")
 
-t1m1.plot <- interplot(t1m1, "ginicnty", "income_i",
+t1m1.plot <- interplot2(t1m1, "ginicnty", "income_i",
                        xmin = min(t$income_i), xmax = max(t$income_i),
                        steps = 9, labels = t$inc_labels,
                        xlab = "Family Income",
