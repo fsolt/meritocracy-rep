@@ -131,7 +131,7 @@ t1m1.plot <- interplot0(t1m1, "ginicnty", "income_i",
                        xlab = "Family Income",
                        ylab = "County Income Inequality")
 t1m1.plot <- t1m1.plot + geom_hline(yintercept=0, colour="grey80", linetype="dashed")
-ggsave(file="t1m1_plot.pdf", plot=t1m1.plot, width=8, height=5.25)
+ggsave(file="doc/figures/t1m1_plot.pdf", plot=t1m1.plot, width=8, height=5.25)
 
 t1m1.gc.coef <- interplot0(t1m1, "ginicnty", "income_i", plot=F,
                           xmin = min(t$income_i), xmax = max(t$income_i),
@@ -165,7 +165,7 @@ t1m1.pp <- ggplot(newdat, aes(x=ginicnty, y=pp, colour=inc)) + geom_line() +
     geom_text(aes(.25, .32, label = "Lowest Income", colour="low"), size=4.5) +
     scale_colour_grey(end=.6) + scale_fill_grey(end=.6) + 
     theme_bw() + theme(legend.position="none")
-ggsave(file="t1m1pp.pdf", width=8, height=5.25)
+ggsave(file="doc/figures/t1m1_pp.pdf", width=8, height=5.25)
 
 
 
