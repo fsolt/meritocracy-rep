@@ -94,13 +94,13 @@ interplot2 <- function(m, var1, var2, xlab=NULL, ylab=NULL,
 }
 
 ### Read data: https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/26584
-pew1 <- read_tsv("study_26584/Meritocracy Replication Data - Table 1.tab") # Combined Pew surveys
+pew1 <- read_tsv("data/study_26584/Meritocracy Replication Data - Table 1.tab") # Combined Pew surveys
 pew1.w <- pew1[pew1$white==1,]  # Only white respondents
 
-pew2 <- read_tsv("study_26584/2006 Pew News Interest Survey_Table 2 Data in Stata Format.tab") # Only 2006 Pew survey
+pew2 <- read_tsv("data/study_26584/2006 Pew News Interest Survey_Table 2 Data in Stata Format.tab") # Only 2006 Pew survey
 pew2.w <- pew2[pew2$white==1,] # Only white respondents
 
-pew3 <- read_tsv("study_26584/Meritocracy Replication Data - Table 3.tab") # Only 2006 Pew survey
+pew3 <- read_tsv("data/study_26584/Meritocracy Replication Data - Table 3.tab") # Only 2006 Pew survey
 pew3.w <- pew3[pew3$white==1,] # Only white respondents
 
 pew1$year <- 2005
