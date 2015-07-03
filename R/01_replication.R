@@ -138,10 +138,10 @@ t1m1.gc.coef <- interplot0(t1m1, "ginicnty", "income_i", plot=F,
                           steps = 9)
 
 # predicted probabilities with confidence intervals (see http://glmm.wikidot.com/faq under lme4)
-newdat <- pew1 %>% summarise_each(funs(mean))
+newdat <- pew1.w %>% summarise_each(funs(mean))
 newdat <- newdat[rep(1, 200), ]
-newdat$ginicnty <- rep(seq(min(pew1$ginicnty, na.rm=T), max(pew1$ginicnty, na.rm=T), length.out = 100), times = 2) # Full observed range of ginicnty
-newdat$income_i <- c(rep(quantile(pew1$income_i, .001), 100), rep(max(pew1$income_i), 100)) # One imputed value falls below theoretical range of variable, use actual range instead by taking 0.1 percentile value
+newdat$ginicnty <- rep(seq(min(pew1.w$ginicnty, na.rm=T), max(pew1.w$ginicnty, na.rm=T), length.out = 100), times = 2) # Full observed range of ginicnty
+newdat$income_i <- c(rep(quantile(pew1.w$income_i, .001), 100), rep(max(pew1.w$income_i), 100)) # One imputed value falls below theoretical range of variable, use actual range instead by taking 0.1 percentile value
 newdat$fips <- NULL # mean FIPs meaningless (and causes error); not used anyway with re.form=NA
 newdat$inc[1:100] <- "low"
 newdat$inc[101:200] <- "high"
