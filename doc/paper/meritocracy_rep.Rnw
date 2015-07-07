@@ -1,0 +1,126 @@
+\documentclass[12pt]{article}
+%\usepackage{fullpage}
+
+\usepackage{graphicx}        % Enable graphics commands
+\usepackage{lscape}		% Enable landscape with \begin{landscape} until \end{landscape}
+\usepackage{natbib}			% Enable citation commands \citep{}, \citet{}, etc.
+\bibpunct{(}{)}{;}{a}{}{,}		% Formatting for in-text citations
+\usepackage{setspace}		% Enable double-spacing with \begin{spacing}{2} until \end{spacing}.
+\usepackage[utf8]{inputenc} 	% Enable utf8 characters, i.e., accents without coding--just type them in.
+\usepackage[english]{babel}	% English hyphenation and alphabetization.  Other languages available.
+\usepackage{dcolumn}        % For decimal-aligned stargazer/texreg output.
+\usepackage[colorlinks=true, urlcolor=blue, citecolor=black, linkcolor=black]{hyperref} % Include hyperlinks with the \url and \href commands.
+\setlength{\tabcolsep}{1pt}	% Make tables slightly narrower by reducing space between columns.
+\usepackage{afterpage}
+\usepackage{hanging}
+\usepackage{fullpage}
+
+
+\renewcommand\floatpagefraction{.9}	% These commands allow larger tables and graphics to fit
+\renewcommand\topfraction{.9}		% on a page when default settings would complain.
+\renewcommand\bottomfraction{.9}
+\renewcommand\textfraction{.1}
+\setcounter{totalnumber}{50}
+\setcounter{topnumber}{50}
+\setcounter{bottomnumber}{50}
+
+\newcommand{\R}{\textsf{R}~}        %This creates the command \R to typeset the name R correctly.
+
+%\usepackage[left=1in, right=1in]{geometry}	%Turn footnotes into endnotes (commented out).
+%\renewcommand{\footnotesize}{\normalsize}	
+%\usepackage{endnotes}
+%\renewcommand{\footnote}{\endnote}
+%\renewcommand{\section}{\subsection}
+
+\begin{document}
+
+
+\title{False Consciousness, Class Awareness, and Belief in American Meritocracy: A Correction}
+\author{
+    Frederick Solt\\
+    \href{mailto:frederick-solt@uiowa.edu}{frederick-solt@uiowa.edu}
+}
+\date{}				
+\maketitle
+
+\begin{abstract}
+
+\end{abstract}
+
+\newpage
+
+<<label=setup, echo=F, results='hide'>>=
+library(readr)
+
+### Read data: https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/26584
+pew1 <- read_tsv("../../data/study_26584/Meritocracy Replication Data - Table 1.tab") # Combined Pew surveys
+pew1.w <- pew1[pew1$white==1,]  # Only white respondents
+
+pew2 <- read_tsv("../../data/study_26584/2006 Pew News Interest Survey_Table 2 Data in Stata Format.tab") # Only 2006 Pew survey
+pew2.w <- pew2[pew2$white==1,] # Only white respondents
+
+pew3 <- read_tsv("../../data/study_26584/Meritocracy Replication Data - Table 3.tab") # Only 2006 Pew survey
+pew3.w <- pew3[pew3$white==1,] # Only white respondents
+
+pew1$year <- 2005
+pew1$year[pew1$survid2006==1] <- 2006
+pew1$year[pew1$survid2007==1] <- 2007
+pew1$year[pew1$survid2009==1] <- 2009
+@
+
+
+0. Not reproduceable.  Packrat, checkpoint, switchr; but this is just the beginning of the problems %(cf. http://www.nature.com/news/statistics-palues-are-just-the-tip-of-the-iceberg-1.17412?WT.mc_id=TWT_NatureNews)
+
+1. Interaction misinterpreted in Table 1, Model 1 (\& Table 3)
+
+It has been well known for over a decade that models containing multiplicative interaction terms require particular care in interpretation \citep[see, e.g.,][]{Golder2003a, Braumoeller2004, Brambor2006, Kam2007a}.  As \citet[72]{Brambor2006} wrote, ``the coefficient on X [income] only captures the effect of X on Y [rejection of meritocracy] when Z [income inequality] is zero.''  But in the replication data for Table 1, Model 1, the range of income is (oddly) .21 to 1; the variable never takes on a value of zero.  Figure~\ref{F:coef.t1m1} plots the coefficient estimates at each of the nine levels of income in the Pew data.  The confidence intervals of these estimates all cross zero.  None are statistically significant.  The conclusion of \citet[334]{Newman2015} that this result ``reveals that among low-income citizens, those residing in highly unequal contexts are significantly more likely to reject meritocratic ideals than those in relatively equal contexts'' is therefore erroneous.
+
+\begin{figure}[htbp] 
+  \caption{Logit Coefficients of Local Income Inequality by Respondent Income: Table 1, Model 1, om Replication Data}
+  \label{F:coef.t1m1}
+  \begin{center}
+    \includegraphics[width=5.25in]{../figures/t1m1_plot.pdf}
+  \end{center}
+  \begin{footnotesize}
+  \begin{tabular}{p{.1in} p{5.1in}}
+  & \emph{Notes}: The coefficient for county income inequality fails to reach statistical gnificance for any observed level of respondent family income.
+  \end{tabular}
+  \end{footnotesize}
+\end{figure}
+
+2. DV mismatch in 2007 and 2009: 30\% in reject meritocracy in 2007 Pew Religious Landscape rvey (compared to just 18\% in 2007 survey used)
+
+3. missing data on income singly imputed
+
+4. unemployment mismeasured in 2005 (plus 2007 and 2009) due to missing employ2 variable, which  only available in 2006.
+
+5. Table 3 not replicable *at all* (model has more REs than observations)
+
+6. "Neither/both" coded as 0 on rej\_meritocracy
+7. In Table 2,
+    a. miscode of partyid
+<<label=party_id>>=
+table(pew2.w$partyid_01, pew2.w$party)
+@
+
+    b. whats going on with ideo? more single imputation?
+<<label=ideo>>=
+table(pew2.w$ideology_01, pew2.w$ideo)
+@
+
+
+    c. attendance--missing just assigned `once or twice a month' (approx mean value?)
+<<label=attend>>=
+table(pew2.w$religattend_01, pew2.w$attend)
+@         
+
+
+\bibliographystyle{ajps}
+\bibliography{FSLibrary}
+
+\appendix
+%\section{Appendix}
+\setcounter{table}{0}
+\renewcommand{\thetable}{A\arabic{table}}
+
+\end{document}
