@@ -86,6 +86,7 @@ interplot0 <- function(m, var1, var2, xlab=NULL, ylab=NULL,
                     theme_bw() + ylab(ylab) + xlab(xlab)
             } 
         }
+        print(coef)
         return(coef.plot)
     } else {
         names(coef) <- c(var2, "coef", "ub", "lb")
@@ -95,6 +96,10 @@ interplot0 <- function(m, var1, var2, xlab=NULL, ylab=NULL,
 
 ### Read data: https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/26584
 pew1 <- read_tsv("data/study_26584/Meritocracy Replication Data - Table 1.tab") # Combined Pew surveys
+pew1$year <- 2005
+pew1$year[pew1$survid2006==1] <- 2006
+pew1$year[pew1$survid2007==1] <- 2007
+pew1$year[pew1$survid2009==1] <- 2009
 pew1.w <- pew1[pew1$white==1,]  # Only white respondents
 
 pew2 <- read_tsv("data/study_26584/2006 Pew News Interest Survey_Table 2 Data in Stata Format.tab") # Only 2006 Pew survey
@@ -102,11 +107,6 @@ pew2.w <- pew2[pew2$white==1,] # Only white respondents
 
 pew3 <- read_tsv("data/study_26584/Meritocracy Replication Data - Table 3.tab") # Only 2006 Pew survey
 pew3.w <- pew3[pew3$white==1,] # Only white respondents
-
-pew1$year <- 2005
-pew1$year[pew1$survid2006==1] <- 2006
-pew1$year[pew1$survid2007==1] <- 2007
-pew1$year[pew1$survid2009==1] <- 2009
 
 
 ### Analyses
@@ -125,7 +125,7 @@ t$income_i <- as.numeric(levels(t$income_i))[t$income_i]
 t$inc_labels <- c("<$10k", "$10-20k", "$20-30k", "$30-40k", "$40-50k",
                   "$50-75k", "$75-100k", "$100-150k", ">$150k")
 
-t1m1.plot <- interplot0(t1m1, "ginicnty", "income_i",
+t1m1.plot <- interplot0(t1m1, "ginicnty", "income_i", sims=5000,
                        xmin = min(t$income_i), xmax = max(t$income_i),
                        steps = 9, labels = t$inc_labels,
                        xlab = "Family Income",
@@ -133,7 +133,7 @@ t1m1.plot <- interplot0(t1m1, "ginicnty", "income_i",
 t1m1.plot <- t1m1.plot + geom_hline(yintercept=0, colour="grey80", linetype="dashed")
 ggsave(file="doc/figures/t1m1_plot.pdf", plot=t1m1.plot, width=8, height=5.25)
 
-t1m1.gc.coef <- interplot0(t1m1, "ginicnty", "income_i", plot=F,
+t1m1.gc.coef <- interplot0(t1m1, "ginicnty", "income_i", plot=F, sims=5000,
                           xmin = min(t$income_i), xmax = max(t$income_i),
                           steps = 9)
 
@@ -186,10 +186,19 @@ summary(t3m1)
 
 
 # Appendix B Table 1, Model 1
-pew1.0506 <- pew1[pew1$year<=2006, ] 
+pew1.0506 <- pew1.w[pew1.w$year<=2006, ] 
 b1m1 <- glmer(formula=meritocracy~ginicnty+income_i+ginicnty:income_i+
                   income_cnty+black_cnty+perc_bush04+pop_cnty+
                   educ_i+age_i+gender_i+unemp_i+union_i+partyid_i+
                   ideo_i+attend_i+survid2006+(1+income_i|fips),
               data=pew1.0506, family=binomial(link="logit"))
 summary(b1m1)
+
+b1m1.plot <- interplot0(b1m1, "ginicnty", "income_i", sims=5000,
+                        xmin = min(t$income_i), xmax = max(t$income_i),
+                        steps = 9, labels = t$inc_labels,
+                        xlab = "Family Income",
+                        ylab = "County Income Inequality")
+b1m1.plot <- b1m1.plot + geom_hline(yintercept=0, colour="grey80", linetype="dashed")
+ggsave(file="doc/figures/b1m1_plot.pdf", plot=t1m1.plot, width=8, height=5.25)
+
