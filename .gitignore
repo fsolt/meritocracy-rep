@@ -1,0 +1,11 @@
+.Rproj.user
+.Rhistory
+.RData
+packrat/lib*/
+*.aux
+*.bbl
+*.log
+*.out
+*.sty
+*.tex
+.DS_Store
