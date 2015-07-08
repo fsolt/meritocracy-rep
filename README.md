@@ -1,2 +1,4 @@
 # meritocracy
 Replication and correction of "False Consciousness or Class Awareness? Local Income Inequality, Personal Economic Position, and Belief in American Meritocracy" (Newman, Johnston, and Lown 2015)
+
+How does the context of income inequality affect political and economic attitudes?  Many studies have found that greater inequality tends to be associated with attitudes that reinforce rather than challenge the status quo. Newman, Johnston, and Lown (2015), however, argue that inequality instead activates disillusionment with the dominant U.S. ideology, leading poorer individuals in local contexts of higher inequality to become more class conscious and to reject meritocracy.  However, the article's empirical results are misinterpreted, and efforts to replicate its analyses reveal additional problems.  As a result, its sanguine conclusions regarding the prospects for redistribution are unsupported.
