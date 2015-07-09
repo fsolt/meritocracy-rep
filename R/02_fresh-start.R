@@ -315,11 +315,7 @@ ggsave(file="b1m1_mi_plot.pdf", plot=b1m1.mi.plot, width=8, height=5.25)
 
 b1m1.mi.coef <- interplot(b1m1.mi, "gini_cnty", "income", steps=9, plot=F)
 
-# Pew 2007
-# missing county info; I requested via Pew contact webpage 4/12;
-#   called 4/15: Charles in Communications says he'll email the
-#   form to start "the process"
-
+# Pew 2007 (to evaluate mixing DVs)
 p2007 <- read_sav("Pew/dataset_Religious_Landscape_Survey_Data/Religious Landscape Survey Data - Continental US.sav")
 
 p2007x <- data.frame(
@@ -348,26 +344,6 @@ p2007x$partyid[p2007$partyln==2] <- 2
 p2007x$year <- 2007
 p2007x.w <- p2007x[p2007x$white==1, -c(8)]
 
-t1m1.07.flat <- glm(formula = rej_merit~income+
-                        educ+age+male+partyid+ideo+attend,
-                    data=p2007x.w, family=binomial(link="logit"))
-
-t1m1.07.x <- glmer(formula = rej_merit~income+
-                       educ+age+male+partyid+ideo+attend+
-                       (1+income|state),
-                   data=p2007x.w, family=binomial(link="logit"))
-
-t1m1.06.x <- glmer(formula = rej_merit~income+
-                       educ+age+male+partyid+ideo+attend+
-                       (1|state),
-                   data=p2006x.w, family=binomial(link="logit"))
-
-t1m1.05.x <- glmer(formula = rej_merit~income+
-                       educ+age+male+partyid+ideo+attend+
-                       (1|state),
-                   data=p2005x.w, family=binomial(link="logit"))
-
-
 
 # Pew 2011 Generational Change has FIPS (at least in Pew version; check Roper 2011std)
 
@@ -383,50 +359,12 @@ prop.table(table(val2007$rej_merit[val2007$white==1]))
 
 val2012 <- read_sav("Pew/august_12_middle_class/Aug12 Middle Class_cleaned.sav")
 
-# Have vs. have-nots questions asked often; have to look for fips
 
-# Cross-national
-ga12 <- read_sav("Pew/Pew Research Global Attitudes Project Spring 2012 Dataset for web/Pew Research Global Attitudes Project Spring 2012 Dataset for web.sav")
-names(ga12) <- tolower(names(ga12))
+# Have vs. have-nots 
+# questions asked often; have to look for fips
 
-ga12x <- data.frame(
-    resp = ga12$psraid,
-    cc = as.numeric(ga12$country),
-    rej_merit = ifelse(ga12$q84<=2, ga12$q84-1, NA),
-    #q156    income = ifelse(ga12$income<=9, ga12$income, NA), # 1 to 9
-    #q154    educ = ifelse(ga12$educ<=7, ga12$educ, NA), # 1 to 7
-    age = ifelse(ga12$q142<99, ga12$q142, NA),
-    male = ifelse(ga12$q141==1, 1, 0),
-    #q159    white = ifelse(ga12$race==1 & ga12$hisp!=1, 1, 0),
-    #na    union = ifelse(ga12$labor<=3, 1, ifelse(ga12$labor==4, 0, NA)),
-    #na    ideo = 6 - ifelse(ga12$ideo<=5, ga12$ideo, NA), # 1 to 5
-    attend = 7 - ifelse(ga12$q153<=6, ga12$q153, NA) # 1 to 6
-)
-cn <- data.frame(cc = attr(ga12$country, "labels"))
-cn$country <- row.names(cn)
-ga12x <- left_join(ga12x, cn)
 
-p2006x$partyid <- mapvalues(p2006$party, 
-                            from = c(1:5, 9), 
-                            to = c(5, 1, 3, 3, 3, NA))
-p2006x$partyid[p2006$partyln==1] <- 4
-p2006x$partyid[p2006$partyln==2] <- 2
 
-p2006x$unemp <- ifelse(p2006$employ==3 & p2006$employ2==4, 1, 0)
-p2006x$unemp[p2006$employ==9 | p2006$employ2==9] <- NA
-
-# p2006x$income_b <- mapvalues(p2006$income, 
-#                              from = c(1:10),
-#                              to = c(5, 15, 25, 35, 45, 62.5, 87.5, 125, 175, NA))
-# p2006x$educ_b <- mapvalues(p2006$educ,
-#                            from = c(1:7, 9),
-#                            to = c(4, 10, 12, 14, 14, 16, 18, NA))
-# p2006x$attend_b <- mapvalues(p2006$attend,
-#                              from = c(1:6, 9),
-#                              to = c(102, 52, 18, 5, 2, 0, NA))
-
-p2006x$year <- 2006
-p2006x.w <- p2006x[p2006x$white==1, -c(9)]
 
 # Haves and have-nots
 hhn06 <- read_dta("Pew/Haves_HaveNots/Sept06/Sept06NIIc.dta") #Data converted with StatTransfer as read_sav didn't work
