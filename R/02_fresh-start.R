@@ -148,7 +148,7 @@ missing$county0 <- NULL # drop tempvar
 
 bush04_cnty %<>% rbind(missing) %>% select(fips, perc_bush04)
 
-acs0509 <- read_csv("acs0509-counties.csv")
+acs0509 <- read_csv("data/acs0509-counties.csv")
 names(acs0509) <- tolower(names(acs0509))
 acs0509 <- mutate(acs0509,
                   fips = as.numeric(gsub("05000US", "", geoid)),
@@ -381,9 +381,11 @@ hhn06x <- data.frame(
     white = ifelse(hhn06$race==1 & hhn06$hisp!=1, 1, 0),
     union = ifelse(hhn06$labor<=3, 1, ifelse(hhn06$labor==4, 0, NA)),
     ideo = 6 - ifelse(hhn06$ideo<=5, hhn06$ideo, NA), # 1 to 5
-    attend = 7 - ifelse(hhn06$attend<=6, hhn06$attend, NA) # 1 to 6
+    attend = 7 - ifelse(hhn06$attend<=6, hhn06$attend, NA), # 1 to 6
+    employ = as.numeric(hhn06$employ),
+    employ2 = NA
 )
-hhn06x$partyid <- mapvalues(hhn06$party, 
+hhn06x$partyid <- mapvalues(as.numeric(hhn06$party), 
                             from = c(1:5, 9), 
                             to = c(5, 1, 3, 3, 3, NA))
 hhn06x$partyid[hhn06$partyln==1] <- 4
@@ -393,17 +395,17 @@ hhn06x$unemp <- ifelse((hhn06$employ==3 | hhn06$employ==9), NA, 0) # No employ2 
 hhn06x$emp <- ifelse((hhn06$employ<=2), 1, ifelse(hhn06$employ==3, 0, NA)) # employed vs. not employed
 
 hhn06x2 <- left_join(hhn06x, cnty_data)
-hhn06x2.w <- hhn06x2[hhn06x2$white==1,]
+hhn06x2.w <- hhn06x2 %>% filter(white==1)
 
-# t2.rwd <- glmer(formula = div_hhn~gini_cnty+
-#                     income_cnty+black_cnty+perc_bush04+pop_cnty+
-#                     income+educ+age+male+union+emp+partyid+ideo+attend+
-#                     (1|fips),
-#                 data=hhn06x2, family=binomial(link="logit"))
-# summary(t2.rwd)
+t2.rwd <- glmer(formula = div_hhn~gini_cnty+
+                    income_cnty+black_cnty+perc_bush04+pop_cnty+
+                    income+educ+age+male+union+emp+partyid+ideo+attend+
+                    (1|fips),
+                data=hhn06x2, family=binomial(link="logit"))
+summary(t2.rwd)
 
 # additional data
-hhn05 <- read_sav("Pew/Haves_HaveNots/Oct05NII/Oct05NIIc.sav")
+hhn05 <- read_sav("data/pew/haves_havenots/Oct05NII/Oct05NIIc.sav")
 hhn05x <- data.frame(
     resp = hhn05$resp,
     fips = as.numeric(hhn05$qfips),
@@ -417,7 +419,9 @@ hhn05x <- data.frame(
     white = ifelse(hhn05$race==1 & hhn05$hisp!=1, 1, 0),
     union = ifelse(hhn05$labor<=3, 1, ifelse(hhn05$labor==4, 0, NA)),
     ideo = 6 - ifelse(hhn05$ideo<=5, hhn05$ideo, NA), # 1 to 5
-    attend = 7 - ifelse(hhn05$attend<=6, hhn05$attend, NA) # 1 to 6
+    attend = 7 - ifelse(hhn05$attend<=6, hhn05$attend, NA), # 1 to 6
+    employ = employ,
+    employ2 = NA
 )
 hhn05x$partyid <- mapvalues(hhn05$party, 
                             from = c(1:5, 9), 
@@ -431,12 +435,12 @@ hhn05x$emp <- ifelse((hhn05$employ<=2), 1, ifelse(hhn05$employ==3, 0, NA)) # emp
 hhn05x2 <- left_join(hhn05x, cnty_data) 
 hhn05x2.w <- hhn05x2[hhn05x2$white==1, ]
 
-# t2_05.rwd <- glmer(formula = div_hhn~gini_cnty+
-#                          income_cnty+black_cnty+perc_bush04+pop_cnty+
-#                          income+educ+age+male+union+emp+partyid+ideo+attend+
-#                          (1|fips),
-#                      data=hhn05x2.w, family=binomial(link="logit"))
-# summary(t2_05.rwd)
+t2_05.rwd <- glmer(formula = div_hhn~gini_cnty+
+                         income_cnty+black_cnty+perc_bush04+pop_cnty+
+                         income+educ+age+male+union+emp+partyid+ideo+attend+
+                         (1|fips),
+                     data=hhn05x2.w, family=binomial(link="logit"))
+summary(t2_05.rwd)
 
 
 # combined data
