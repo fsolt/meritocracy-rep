@@ -159,9 +159,9 @@ acs0509 <- mutate(acs0509,
 cnty_data <- select(acs0509, fips:pop_cnty)
 cnty_data %<>% left_join(bush04_cnty)
 
-
+# DV Version A: 2005 & 2006, dichotomous item
 # Pew 2005 News Interest Index
-p2005 <- read_sav("Pew/Dec05/Dec05c.sav")
+p2005 <- read_sav("data/pew/merit/version_a/Dec05/Dec05c.sav")
 
 p2005x <- data.frame(
     resp = p2005$resp,
@@ -200,7 +200,7 @@ p2005x.w <- p2005x[p2005x$white==1, -c(9)]
 
 
 # Pew 2006 Immigration Survey
-p2006 <- read_sav("Pew/Immigration06/Mar06 Immigrationc.sav")
+p2006 <- read_sav("data/pew/merit/version_a/Immigration06/Mar06 Immigrationc.sav")
 p2006 <- p2006[p2006$xcode > 5, ]
 
 p2006x <- data.frame(
@@ -345,7 +345,15 @@ p2007x$year <- 2007
 p2007x.w <- p2007x[p2007x$white==1, -c(8)]
 
 
-# Pew 2011 Generational Change has FIPS (at least in Pew version; check Roper 2011std)
 
 
+# DV Version B: 2007, two four-point items collapsed and combined
+# 2007 Values Survey (also asked in many earlier years before 2005)
+val2007 <- read_sav("data/pew/merit/version_b/Values07/Values07c.sav")
 
+val2007$rej_merit <- with(val2007, as.numeric((q13e<=2) & (q13f<=2)))
+val2007$white <- ifelse(val2007$race==1 & val2007$hisp!=1, 1, 0)
+prop.table(table(val2007$rej_merit[val2007$white==1]))
+
+# DV Version C: 2009, one four-point item collapsed
+# 2009 Values Survey (also includes other four-point item?)
