@@ -88,7 +88,7 @@ It has been well known for over a decade that models containing multiplicative i
   \end{footnotesize}
 \end{figure}
 
-2. DV mismatch in 2007 and 2009: 30\% in reject meritocracy in 2007 Pew Religious Landscape rvey (compared to just 18\% in 2007 survey used)
+2. DV mismatch in 2007 and 2009: 30\% in reject meritocracy in 2007 Pew Religious Landscape Survey (compared to just 18\% in 2007 survey used)
 
 3. missing data on income singly imputed
 
@@ -113,6 +113,8 @@ table(pew2.w$ideology_01, pew2.w$ideo)
 <<label=attend>>=
 table(pew2.w$religattend_01, pew2.w$attend)
 @         
+
+8. Why only 2006 when 2005, 2007-2009 data also available?  2009 dataset is used in Table 1 \ldots
 
 
 \bibliographystyle{ajps}

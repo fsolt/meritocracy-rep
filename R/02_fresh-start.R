@@ -401,7 +401,7 @@ t2.rwd <- glmer(formula = div_hhn~gini_cnty+
                     income_cnty+black_cnty+perc_bush04+pop_cnty+
                     income+educ+age+male+union+emp+partyid+ideo+attend+
                     (1|fips),
-                data=hhn06x2, family=binomial(link="logit"))
+                data=hhn06x2.w, family=binomial(link="logit"))
 summary(t2.rwd)
 
 # additional data
@@ -420,7 +420,7 @@ hhn05x <- data.frame(
     union = ifelse(hhn05$labor<=3, 1, ifelse(hhn05$labor==4, 0, NA)),
     ideo = 6 - ifelse(hhn05$ideo<=5, hhn05$ideo, NA), # 1 to 5
     attend = 7 - ifelse(hhn05$attend<=6, hhn05$attend, NA), # 1 to 6
-    employ = employ,
+    employ = as.numeric(hhn05$employ),
     employ2 = NA
 )
 hhn05x$partyid <- mapvalues(hhn05$party, 
@@ -442,6 +442,14 @@ t2_05.rwd <- glmer(formula = div_hhn~gini_cnty+
                      data=hhn05x2.w, family=binomial(link="logit"))
 summary(t2_05.rwd)
 
+# hhn07 available with fips (July07; may not have all controls)
+p07 <- read_sav("~/Documents/Projects/Meritocracy_Rep0/Pew/Haves_HaveNots/July07/July07c.sav")
+# hhn08 available with fips (Jan08 *and* EarlyOct08; may not have all controls)
+p08jan <- read_dta("~/Documents/Projects/Meritocracy_Rep0/Pew/Haves_HaveNots/Jan08/Jan08c.dta")
+p08oct <- read_sav("~/Documents/Projects/Meritocracy_Rep0/Pew/Haves_HaveNots/EarlyOct08/EarlyOct08c.sav")
+# hhn09 available in Values09! which they used in Table 1!!
+
+# no fips in Apr10-political-future; Sept 22-25 2011 omnibus public; or Dec11 Political (they're too late for the contextual data anyway)
 
 # combined data
 hhn0506 <- rbind(hhn05x, hhn06x)
