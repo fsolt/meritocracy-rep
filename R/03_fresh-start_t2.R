@@ -1,52 +1,60 @@
-# Alternate item
-# 2007 Values Survey (also asked 2009 (with fips), 2012 (no fips), many earlier years before 2005)
-val2007 <- read_sav("Pew/Values07/Values07c.sav")
-
-val2007$rej_merit <- with(val2007, as.numeric((q13e<=2) & (q13f<=2)))
-val2007$white <- ifelse(val2007$race==1 & val2007$hisp!=1, 1, 0)
-prop.table(table(val2007$rej_merit[val2007$white==1]))
-
-val2012 <- read_sav("Pew/august_12_middle_class/Aug12 Middle Class_cleaned.sav")
-
+library(haven)
+library(dplyr)
+library(magrittr)
+library(lme4)
 
 # Have vs. have-nots 
-# questions asked often; have to look for fips
+# questions asked, with fips, in *every year* from 2005-2009, though NJL uses only 2006
+
+hhn_format <- function(df, cfips, dh, hn) {
+    surv <- deparse(substitute(df))
+    all_vars <- c("income", "educ", "age", "sex", "racethn", "race", "hisp", 
+                  "labor", "ideo", "attend", "employ", "party", "partyln")
+    vars <- c(cfips, dh, hn, all_vars[all_vars %in% names(df)])
+    df %<>% select(one_of(vars))
+    names(df)[1:3] <- c("cfips", "dh", "hn")
+    df %<>% mutate(
+        fips = cfips,
+        state = floor(cfips/1000),
+        div_hhn = ifelse(dh==1, 1, ifelse(dh==2, 0, NA)),
+        have_not = ifelse(hn==2, 1, ifelse(hn==1, 0, NA)),
+        income = as.integer(ifelse(income<=9, income, NA)), # 1 to 9
+        educ = as.integer(ifelse(educ<=7, educ, NA)), # 1 to 7
+        age = ifelse(age<99, age, NA),
+        male = ifelse(sex==1, 1, 0),
+        ideo = as.integer(6 - ifelse(ideo<=5, ideo, NA)), # 1 to 5
+        partyid = ifelse(party==1, 5, ifelse(party==2, 1, ifelse(partyln==1, 4, ifelse(partyln==2, 2, NA))))
+    )
+    if (names(df) %>% str_detect("racethn") %>% any()) {
+        df %<>% mutate(white = ifelse(racethn==1, 1, 0))
+    } else df %<>% mutate(white = ifelse(race==1 & hisp!=1, 1, 0))
+    if (names(df) %>% str_detect("labor") %>% any()) {
+        df %<>% mutate(union = ifelse(labor<=3, 1, ifelse(labor==4, 0, NA)))
+    } else df %<>% mutate(union = NA)
+    if (names(df) %>% str_detect("attend") %>% any()) {
+        df %<>% mutate(attend = 7 - ifelse(attend<=6, attend, NA))
+    } else df %<>% mutate(attend = NA)
+    if (names(df) %>% str_detect("employ") %>% any()) {
+        df %<>% mutate(emp = ifelse(employ<3, 1, ifelse(employ==3, 0, NA)))
+    } else df %<>% mutate(emp = NA)
+
+    df$survey <- surv
+    
+    vars2 <- c("fips", "state", "div_hhn", "have_not", "income", "educ", "age", "male", "white", 
+               "union", "emp", "partyid", "ideo", "attend", "survey")
+    df %<>% select(one_of(vars2))
+} 
 
 
-
-
-# Haves and have-nots
-hhn06 <- read_dta("Pew/Haves_HaveNots/Sept06/Sept06NIIc.dta") #Data converted with StatTransfer as read_sav didn't work
-hhn06x <- data.frame(
-    resp = hhn06$psraid,
-    fips = as.numeric(hhn06$fips),
-    state = as.numeric(hhn06$state),
-    div_hhn = ifelse(hhn06$q52==1, 1, ifelse(hhn06$q52==2, 0, NA)),
-    have_not = ifelse(hhn06$q53==2, 1, ifelse(hhn06$q53==1, 0, NA)),
-    income = ifelse(hhn06$income<=9, hhn06$income, NA), # 1 to 9
-    educ = ifelse(hhn06$educ<=7, hhn06$educ, NA), # 1 to 7
-    age = ifelse(hhn06$age<99, hhn06$age, NA),
-    male = ifelse(hhn06$sex==1, 1, 0),
-    white = ifelse(hhn06$race==1 & hhn06$hisp!=1, 1, 0),
-    union = ifelse(hhn06$labor<=3, 1, ifelse(hhn06$labor==4, 0, NA)),
-    ideo = 6 - ifelse(hhn06$ideo<=5, hhn06$ideo, NA), # 1 to 5
-    attend = 7 - ifelse(hhn06$attend<=6, hhn06$attend, NA), # 1 to 6
-    employ = as.numeric(hhn06$employ),
-    employ2 = NA
-)
-hhn06x$partyid <- mapvalues(as.numeric(hhn06$party), 
-                            from = c(1:5, 9), 
-                            to = c(5, 1, 3, 3, 3, NA))
-hhn06x$partyid[hhn06$partyln==1] <- 4
-hhn06x$partyid[hhn06$partyln==2] <- 2
-
-hhn06x$unemp <- ifelse((hhn06$employ==3 | hhn06$employ==9), NA, 0) # No employ2 in survey
-hhn06x$emp <- ifelse((hhn06$employ<=2), 1, ifelse(hhn06$employ==3, 0, NA)) # employed vs. not employed
+# 2006
+hhn06 <- read_dta("data/pew/haves_havenots/Sept06/Sept06NIIc.dta") # Converted first with StatTransfer as read_sav didn't work
+hhn06x <- hhn_format(hhn06, cfips="fips", dh="q52", hn="q53")
 
 hhn06x2 <- left_join(hhn06x, cnty_data)
 hhn06x2.w <- hhn06x2 %>% filter(white==1)
 
-t2.rwd <- glmer(formula = div_hhn~gini_cnty+
+    # row-wise deletion of missing data
+t2.rwd <- glmer(formula = div_hhn~gini_cnty+ 
                     income_cnty+black_cnty+perc_bush04+pop_cnty+
                     income+educ+age+male+union+emp+partyid+ideo+attend+
                     (1|fips),
@@ -54,51 +62,33 @@ t2.rwd <- glmer(formula = div_hhn~gini_cnty+
 summary(t2.rwd)
 
 # additional data
+# hhn05 available with fips (Oct05NII)
 hhn05 <- read_sav("data/pew/haves_havenots/Oct05NII/Oct05NIIc.sav")
-hhn05x <- data.frame(
-    resp = hhn05$resp,
-    fips = as.numeric(hhn05$qfips),
-    state = as.numeric(hhn05$qstcd),
-    div_hhn = ifelse(hhn05$q52==1, 1, ifelse(hhn05$q52==2, 0, NA)),
-    have_not = ifelse(hhn05$q53==2, 1, ifelse(hhn05$q53==1, 0, NA)),
-    income = ifelse(hhn05$income<=9, hhn05$income, NA), # 1 to 9
-    educ = ifelse(hhn05$educ<=7, hhn05$educ, NA), # 1 to 7
-    age = ifelse(hhn05$age<99, hhn05$age, NA),
-    male = ifelse(hhn05$sex==1, 1, 0),
-    white = ifelse(hhn05$race==1 & hhn05$hisp!=1, 1, 0),
-    union = ifelse(hhn05$labor<=3, 1, ifelse(hhn05$labor==4, 0, NA)),
-    ideo = 6 - ifelse(hhn05$ideo<=5, hhn05$ideo, NA), # 1 to 5
-    attend = 7 - ifelse(hhn05$attend<=6, hhn05$attend, NA), # 1 to 6
-    employ = as.numeric(hhn05$employ),
-    employ2 = NA
-)
-hhn05x$partyid <- mapvalues(hhn05$party, 
-                            from = c(1:5, 9), 
-                            to = c(5, 1, 3, 3, 3, NA))
-hhn05x$partyid[hhn05$partyln==1] <- 4
-hhn05x$partyid[hhn05$partyln==2] <- 2
 
-hhn05x$unemp <- ifelse((hhn05$employ==3 | hhn05$employ==9), NA, 0) # No employ2 in survey
-hhn05x$emp <- ifelse((hhn05$employ<=2), 1, ifelse(hhn05$employ==3, 0, NA)) # employed vs. not employed
+# hhn07 available with fips (July07; missing labor, employ)
+hhn07 <- read_sav("data/pew/haves_havenots/July07/July07c.sav")
 
-hhn05x2 <- left_join(hhn05x, cnty_data) 
-hhn05x2.w <- hhn05x2[hhn05x2$white==1, ]
+# hhn08 available with fips (Jan08 has all controls; EarlyOct2008 missing labor, attend)
+hhn0801 <- read_dta("data/pew/haves_havenots/Jan08/Jan08c.dta")
+hhn0810 <- read_sav("data/pew/haves_havenots/EarlyOct08/EarlyOct08c.sav")
 
-t2_05.rwd <- glmer(formula = div_hhn~gini_cnty+
-                       income_cnty+black_cnty+perc_bush04+pop_cnty+
-                       income+educ+age+male+union+emp+partyid+ideo+attend+
-                       (1|fips),
-                   data=hhn05x2.w, family=binomial(link="logit"))
-summary(t2_05.rwd)
+# hhn09 available with fips (Values09 has all controls but hhn asked only of half--survey used in Table 1!)
+hhn09 <- read_sav("data/pew/haves_havenots/Values09/Values09c.sav")
 
-# hhn07 available with fips (July07; may not have all controls)
-p07 <- read_sav("~/Documents/Projects/Meritocracy_Rep0/Pew/Haves_HaveNots/July07/July07c.sav")
-# hhn08 available with fips (Jan08 *and* EarlyOct08; may not have all controls)
-p08jan <- read_dta("~/Documents/Projects/Meritocracy_Rep0/Pew/Haves_HaveNots/Jan08/Jan08c.dta")
-p08oct <- read_sav("~/Documents/Projects/Meritocracy_Rep0/Pew/Haves_HaveNots/EarlyOct08/EarlyOct08c.sav")
-# hhn09 available in Values09! which they used in Table 1!!
+# no fips in Apr10-political-future;
+#               Sept 22-25 2011 omnibus public; or 
+#               Dec11 Political (they're too late for the acs0509 contextual data anyway)
 
-# no fips in Apr10-political-future; Sept 22-25 2011 omnibus public; or Dec11 Political (they're too late for the contextual data anyway)
+# format all datasets
+hhn05x <- hhn_format(hhn05, cfips="qfips", dh="q52", hn="q53")
+hhn06x <- hhn_format(hhn06, cfips="fips", dh="q52", hn="q53")
+hhn07x <- hhn_format(hhn07, cfips="qfips", dh="qb28", hn="qb29")
+hhn0801x <- hhn_format(hhn0801, cfips="fips", dh="q33", hn="q34")
+hhn0810x <- hhn_format(hhn0810, cfips="zfips", dh="q56", hn="q57")
+hhn09x <- hhn_format(hhn09, cfips="fips", dh="qb28", hn="qb29")
+
+
+
 
 # combined data
 hhn0506 <- rbind(hhn05x, hhn06x)
