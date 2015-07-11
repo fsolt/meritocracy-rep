@@ -2,6 +2,8 @@ library(haven)
 library(dplyr)
 library(magrittr)
 library(lme4)
+library(mi)
+library(mitools)
 
 # Have vs. have-nots 
 # questions asked, with fips, in *every year* from 2005-2009, though NJL uses only 2006
@@ -61,6 +63,34 @@ t2.rwd <- glmer(formula = div_hhn~gini_cnty+
                 data=hhn06x2.w, family=binomial(link="logit"))
 summary(t2.rwd)
 
+    # Multiply impute missing values with mi
+hhn06x2.w.info <- mi.info(hhn06x2.w)
+hhn06x2.w.info <- update(hhn06x2.w.info, "include", list(resp=F, fips=F, state=F))
+hhn06x2.w.info <- update(hhn06x2.w.info, "type", list(
+    income = "ordered-categorical",
+    educ = "ordered-categorical",
+    attend  = "ordered-categorical"))
+hhn06x2.w.pre <- mi.preprocess(hhn06x2.w, hhn06x2.w.info)
+
+hhn06x2.w.mi <- mi(hhn06x2.w.pre, n.imp=10, n.iter=30, seed=324, max.minutes=60)
+
+hhn06x2.w.mi.list <- mi.completed(hhn06x2.w.mi)
+hhn06x2.w.mi.list2 <- imputationList(hhn06x2.w.mi.list)
+t2.mi <- with(hhn06x2.w.mi.list2, 
+              glmer(formula = div_hhn~gini_cnty+
+                        income_cnty+black_cnty+perc_bush04+pop_cnty+
+                        income+educ+age+male+union+emp+partyid+ideo+attend+
+                        (1|fips), family=binomial(link="logit")))
+t2.mi.fe <- MIextract(t2.mi, fun=fixef) # https://books.google.com/books?id=EbLrQrBGid8C&pg=PA384
+t2.mi.vars <- MIextract(t2.mi, fun=vcov)
+t2.mi.vars2 <- list()
+t2.mi.vars2 <- lapply(t2.mi.vars, as.matrix)
+t2.mi.res <- MIcombine(t2.mi.fe, t2.mi.vars2)
+summary(t2.mi.res)
+
+
+
+
 # additional data
 # hhn05 available with fips (Oct05NII)
 hhn05 <- read_sav("data/pew/haves_havenots/Oct05NII/Oct05NIIc.sav")
@@ -115,31 +145,6 @@ summary(t2_0506.rwd)
 
 
 
-# Multiply impute missing values with mi
-# 2006 only
-hhn06x2.w.info <- mi.info(hhn06x2.w)
-hhn06x2.w.info <- update(hhn06x2.w.info, "include", list(resp=F, fips=F, state=F))
-hhn06x2.w.info <- update(hhn06x2.w.info, "type", list(
-    income = "ordered-categorical",
-    educ = "ordered-categorical",
-    attend  = "ordered-categorical"))
-hhn06x2.w.pre <- mi.preprocess(hhn06x2.w, hhn06x2.w.info)
-
-hhn06x2.w.mi <- mi(hhn06x2.w.pre, n.imp=10, n.iter=30, seed=324, max.minutes=60)
-
-hhn06x2.w.mi.list <- mi.completed(hhn06x2.w.mi)
-hhn06x2.w.mi.list2 <- imputationList(hhn06x2.w.mi.list)
-t2.mi <- with(hhn06x2.w.mi.list2, 
-              glmer(formula = div_hhn~gini_cnty+
-                        income_cnty+black_cnty+perc_bush04+pop_cnty+
-                        income+educ+age+male+union+emp+partyid+ideo+attend+
-                        (1|fips), family=binomial(link="logit")))
-t2.mi.fe <- MIextract(t2.mi, fun=fixef) # https://books.google.com/books?id=EbLrQrBGid8C&pg=PA384
-t2.mi.vars <- MIextract(t2.mi, fun=vcov)
-t2.mi.vars2 <- list()
-t2.mi.vars2 <- lapply(t2.mi.vars, as.matrix)
-t2.mi.res <- MIcombine(t2.mi.fe, t2.mi.vars2)
-summary(t2.mi.res)
 
 
 # combined data
