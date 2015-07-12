@@ -112,6 +112,7 @@ bush04$county[(bush04$state=="LA"|bush04$state=="MS") & bush04$county=="jeffdavi
 bush04$county[(bush04$state=="ME") & bush04$county=="linc"] <- "lincoln"
 bush04$county[(bush04$state=="ME") & bush04$county=="andr"] <- "androscoggin"
 bush04$county[(bush04$state=="ME") & bush04$county=="pen-s"] <- "penobscot"
+bush04$county[(bush04$state=="ME") & bush04$county=="som-s"] <- "somerset"
 bush04$county[(bush04$state=="MA") & bush04$county=="hamd"] <- "hamden"
 bush04$county[(bush04$state=="MA") & bush04$county=="esse"] <- "essex"
 bush04$county[(bush04$state=="MA") & bush04$county=="hams"] <- "hampshire"
@@ -130,7 +131,7 @@ bush04$county[(bush04$state=="VA") & bush04$county=="norton"] <- "nortoncity"
 
 bush04_cnty <- left_join(bush04, fips_cnty)
 missing <- bush04_cnty[is.na(bush04_cnty$fips), 1:8] # election results still without fips due to county name inconsistencies
-bush04_cnty <- bush04_cnty[!is.na(bush04_cnty$fips), ] # keep (for the moment) only results with fips
+bush04_cnty <- bush04_cnty[!is.na(bush04_cnty$fips), ] # keep only results that already have fips
 remaining <- anti_join(fips_cnty, bush04) %>% arrange(state) # fips without election results
 
 missing$county0 <- missing$county # move county names to a tempvar
