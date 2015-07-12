@@ -47,54 +47,58 @@ hhn_format <- function(df, cfips, dh, hn) {
     vars2 <- c("fips", "state", "div_hhn", "have_not", "income", "educ", "age", "male", "white", 
                "union", "emp", "partyid", "ideo", "attend", "survey")
     df %<>% select(one_of(vars2)) %>% left_join(cnty_data) %>% filter(white==1)
-
 } 
 
+hhn_mi <- function(df, seed=324) {
+    mdf <- missing_data.frame(as.data.frame(df))
+    mdf <- change(mdf, y = c("fips", "state"), what = "type", to = "irrelevant")
+    mdf <- change(mdf, y = c("income", "educ", "attend"), what = "type", to = "ordered-categorical")
+    mdf <- change(mdf, y = "age", what = "type", to = "bounded-continuous", lower=18, upper=97)
+    mdf_mi <- mi(mdf, seed=seed) 
+    
+    # switch to mitools format (no support for glmer in mi::pool)
+    mdf_mi_list <- complete(mdf_mi, m=10) 
+    mdf_mi_list <- lapply(mdf_mi_list, function(df) 
+        sapply(df, function(v) 
+            if(any(class(v)=="factor")) v <- as.numeric(levels(v))[v] else v <- v) %>% data.frame) # get rid of %&*(&^ factors
+    imputationList(mdf_mi_list)
+}
 
 ### 2006
 hhn06 <- read_dta("data/pew/haves_havenots/Sept06/Sept06NIIc.dta") # Converted first with StatTransfer as read_sav didn't work
 hhn06x <- hhn_format(hhn06, cfips="fips", dh="q52", hn="q53")
 
+hhn06x_mi <- hhn_mi(hhn06x)
 
+format_mi_results <- function(m) {
+    m.fe <- MIextract(m, fun=fixef) # see https://books.google.com/books?id=EbLrQrBGid8C&pg=PA384
+    m.vars <- MIextract(m, fun=vcov)
+    m.vars2 <- list()
+    m.vars2 <- lapply(m.vars, as.matrix)
+    m.res <- MIcombine(m.fe, t2.mi.vars2)
+}
 
-# Multiply impute missing values with mi
-hhn06x2.w_mdf <- missing_data.frame(as.data.frame(hhn06x2.w))
-hhn06x2.w_mdf <- change(hhn06x2.w_mdf, y = c("fips", "state"), what = "type", to = "irrelevant")
-hhn06x2.w_mdf <- change(hhn06x2.w_mdf, y = c("income", "educ", "attend"), what = "type", to = "ordered-categorical")
-hhn06x2.w_mdf <- change(hhn06x2.w_mdf, y = "age", what = "type", to = "bounded-continuous", lower=18, upper=97)
-hhn06x2.w.mi <- mi(hhn06x2.w_mdf, seed=324)
-
-hhn06x2.w.mi.list <- complete(hhn06x2.w.mi) # need to switch to mitools format (no support for glmer in mi::pool)
-hhn06x2.w.mi.list <- lapply(hhn06x2.w.mi.list, function(df) 
-    sapply(df, function(v) 
-        if(any(class(v)=="factor")) v <- as.numeric(levels(v))[v] else v <- v) %>% data.frame) # get rid of factors
-hhn06x2.w.mi.list2 <- imputationList(hhn06x2.w.mi.list)
-
-t2.mi <- with(hhn06x2.w.mi.list2, 
+t2.mi <- with(hhn06x_mi, 
               glmer(formula = div_hhn~gini_cnty+
                         income_cnty+black_cnty+perc_bush04+pop_cnty+
                         income+educ+age+male+union+emp+partyid+ideo+attend+
                         (1|fips), family=binomial(link="logit")))
-t2.mi.fe <- MIextract(t2.mi, fun=fixef) # https://books.google.com/books?id=EbLrQrBGid8C&pg=PA384
-t2.mi.vars <- MIextract(t2.mi, fun=vcov)
-t2.mi.vars2 <- list()
-t2.mi.vars2 <- lapply(t2.mi.vars, as.matrix)
-t2.mi.res <- MIcombine(t2.mi.fe, t2.mi.vars2)
+t2.mi.res <- format_mi_results(t2.mi)
 summary(t2.mi.res)
 
 
 # additional data
-# hhn05 available with fips (Oct05NII)
+# hhn05 available with fips (Oct05NII, all controls)
 hhn05 <- read_sav("data/pew/haves_havenots/Oct05NII/Oct05NIIc.sav")
 
 # hhn07 available with fips (July07 missing labor, employ)
 hhn07 <- read_sav("data/pew/haves_havenots/July07/July07c.sav")
 
-# hhn08 available with fips (Jan08 has all controls; EarlyOct2008 missing labor, attend)
+# hhn08 available with fips (Jan08, all controls; EarlyOct2008 missing labor, attend)
 hhn0801 <- read_dta("data/pew/haves_havenots/Jan08/Jan08c.dta")
 hhn0810 <- read_sav("data/pew/haves_havenots/EarlyOct08/EarlyOct08c.sav")
 
-# hhn09 available with fips (Values09 has all controls but hhn asked only of half--survey used in Table 1!)
+# hhn09 available with fips (Values09, all controls but hhn asked only of half--survey used in Table 1!)
 hhn09 <- read_sav("data/pew/haves_havenots/Values09/Values09c.sav")
 
 # no fips in Apr10-political-future;
