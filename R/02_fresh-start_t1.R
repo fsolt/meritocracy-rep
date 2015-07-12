@@ -160,6 +160,7 @@ acs0509 <- mutate(acs0509,
                   pop_cnty = b02001_001e/10000)
 cnty_data <- select(acs0509, fips:pop_cnty)
 cnty_data %<>% left_join(bush04_cnty)
+write_csv(cnty_data, "data/cnty_data.csv")
 
 # DV Version A: 2005 & 2006, dichotomous item
 # Pew 2005 News Interest Index
