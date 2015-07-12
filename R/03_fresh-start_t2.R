@@ -3,20 +3,22 @@ library(dplyr)
 library(magrittr)
 library(lme4)
 library(mi)
+library(betareg)
+library(truncnorm)
 library(mitools)
 
 # Have vs. have-nots 
 # questions asked, with fips, in *every year* from 2005-2009, though NJL uses only 2006
 
 hhn_format <- function(df, cfips, dh, hn) {
-    surv <- deparse(substitute(df))
+    surv <- str_replace(deparse(substitute(df)), "hhn", "20")
     all_vars <- c("income", "educ", "age", "sex", "racethn", "race", "hisp", 
                   "labor", "ideo", "attend", "employ", "party", "partyln")
     vars <- c(cfips, dh, hn, all_vars[all_vars %in% names(df)])
     df %<>% select(one_of(vars))
     names(df)[1:3] <- c("cfips", "dh", "hn")
     df %<>% mutate(
-        fips = cfips,
+        fips = as.integer(cfips),
         state = floor(cfips/1000),
         div_hhn = ifelse(dh==1, 1, ifelse(dh==2, 0, NA)),
         have_not = ifelse(hn==2, 1, ifelse(hn==1, 0, NA)),
@@ -48,14 +50,14 @@ hhn_format <- function(df, cfips, dh, hn) {
 } 
 
 
-# 2006
+### 2006
 hhn06 <- read_dta("data/pew/haves_havenots/Sept06/Sept06NIIc.dta") # Converted first with StatTransfer as read_sav didn't work
 hhn06x <- hhn_format(hhn06, cfips="fips", dh="q52", hn="q53")
 
 hhn06x2 <- left_join(hhn06x, cnty_data)
 hhn06x2.w <- hhn06x2 %>% filter(white==1)
 
-    # row-wise deletion of missing data
+# With row-wise deletion of missing data
 t2.rwd <- glmer(formula = div_hhn~gini_cnty+ 
                     income_cnty+black_cnty+perc_bush04+pop_cnty+
                     income+educ+age+male+union+emp+partyid+ideo+attend+
@@ -63,19 +65,19 @@ t2.rwd <- glmer(formula = div_hhn~gini_cnty+
                 data=hhn06x2.w, family=binomial(link="logit"))
 summary(t2.rwd)
 
-    # Multiply impute missing values with mi
-hhn06x2.w.info <- mi.info(hhn06x2.w)
-hhn06x2.w.info <- update(hhn06x2.w.info, "include", list(resp=F, fips=F, state=F))
-hhn06x2.w.info <- update(hhn06x2.w.info, "type", list(
-    income = "ordered-categorical",
-    educ = "ordered-categorical",
-    attend  = "ordered-categorical"))
-hhn06x2.w.pre <- mi.preprocess(hhn06x2.w, hhn06x2.w.info)
+# Multiply impute missing values with mi
+hhn06x2.w_mdf <- missing_data.frame(as.data.frame(hhn06x2.w))
+hhn06x2.w_mdf <- change(hhn06x2.w_mdf, y = c("fips", "state"), what = "type", to = "irrelevant")
+hhn06x2.w_mdf <- change(hhn06x2.w_mdf, y = c("income", "educ", "attend"), what = "type", to = "ordered-categorical")
+hhn06x2.w_mdf <- change(hhn06x2.w_mdf, y = "age", what = "type", to = "bounded-continuous", lower=18, upper=97)
+hhn06x2.w.mi <- mi(hhn06x2.w_mdf, seed=324)
 
-hhn06x2.w.mi <- mi(hhn06x2.w.pre, n.imp=10, n.iter=30, seed=324, max.minutes=60)
-
-hhn06x2.w.mi.list <- mi.completed(hhn06x2.w.mi)
+hhn06x2.w.mi.list <- complete(hhn06x2.w.mi) # need to switch to mitools format (no support for glmer in mi::pool)
+hhn06x2.w.mi.list <- lapply(hhn06x2.w.mi.list, function(df) 
+    sapply(df, function(v) 
+        if(any(class(v)=="factor")) v <- as.numeric(levels(v))[v] else v <- v) %>% data.frame) # get rid of factors
 hhn06x2.w.mi.list2 <- imputationList(hhn06x2.w.mi.list)
+
 t2.mi <- with(hhn06x2.w.mi.list2, 
               glmer(formula = div_hhn~gini_cnty+
                         income_cnty+black_cnty+perc_bush04+pop_cnty+
@@ -89,13 +91,11 @@ t2.mi.res <- MIcombine(t2.mi.fe, t2.mi.vars2)
 summary(t2.mi.res)
 
 
-
-
 # additional data
 # hhn05 available with fips (Oct05NII)
 hhn05 <- read_sav("data/pew/haves_havenots/Oct05NII/Oct05NIIc.sav")
 
-# hhn07 available with fips (July07; missing labor, employ)
+# hhn07 available with fips (July07 missing labor, employ)
 hhn07 <- read_sav("data/pew/haves_havenots/July07/July07c.sav")
 
 # hhn08 available with fips (Jan08 has all controls; EarlyOct2008 missing labor, attend)
