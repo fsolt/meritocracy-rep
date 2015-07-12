@@ -46,7 +46,8 @@ hhn_format <- function(df, cfips, dh, hn) {
     
     vars2 <- c("fips", "state", "div_hhn", "have_not", "income", "educ", "age", "male", "white", 
                "union", "emp", "partyid", "ideo", "attend", "survey")
-    df %<>% select(one_of(vars2))
+    df %<>% select(one_of(vars2)) %>% left_join(cnty_data) %>% filter(white==1)
+
 } 
 
 
@@ -54,16 +55,7 @@ hhn_format <- function(df, cfips, dh, hn) {
 hhn06 <- read_dta("data/pew/haves_havenots/Sept06/Sept06NIIc.dta") # Converted first with StatTransfer as read_sav didn't work
 hhn06x <- hhn_format(hhn06, cfips="fips", dh="q52", hn="q53")
 
-hhn06x2 <- left_join(hhn06x, cnty_data)
-hhn06x2.w <- hhn06x2 %>% filter(white==1)
 
-# With row-wise deletion of missing data
-t2.rwd <- glmer(formula = div_hhn~gini_cnty+ 
-                    income_cnty+black_cnty+perc_bush04+pop_cnty+
-                    income+educ+age+male+union+emp+partyid+ideo+attend+
-                    (1|fips),
-                data=hhn06x2.w, family=binomial(link="logit"))
-summary(t2.rwd)
 
 # Multiply impute missing values with mi
 hhn06x2.w_mdf <- missing_data.frame(as.data.frame(hhn06x2.w))
