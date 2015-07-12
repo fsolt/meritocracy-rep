@@ -1,13 +1,15 @@
+library(readr)
 library(haven)
 library(dplyr)
 library(magrittr)
-library(lme4)
+library(stringr)
 library(mi)
 library(betareg)
 library(truncnorm)
 library(mitools)
+library(lme4)
 
-# Have vs. have-nots 
+### Have vs. have-nots 
 # questions asked, with fips, in *every year* from 2005-2009, though NJL uses only 2006
 
 hhn_format <- function(df, cfips, dh, hn) {
@@ -19,7 +21,7 @@ hhn_format <- function(df, cfips, dh, hn) {
     names(df)[1:3] <- c("cfips", "dh", "hn")
     df %<>% mutate(
         fips = as.integer(cfips),
-        state = floor(cfips/1000),
+        state = floor(fips/1000),
         div_hhn = ifelse(dh==1, 1, ifelse(dh==2, 0, NA)),
         have_not = ifelse(hn==2, 1, ifelse(hn==1, 0, NA)),
         income = as.integer(ifelse(income<=9, income, NA)), # 1 to 9
@@ -64,42 +66,39 @@ hhn_mi <- function(df, seed=324) {
     imputationList(mdf_mi_list)
 }
 
-### 2006
+format_mi_results <- function(m) {
+    m_fe <- MIextract(m, fun=fixef) # see https://books.google.com/books?id=EbLrQrBGid8C&pg=PA384
+    m_vars <- MIextract(m, fun=vcov)
+    m_vars2 <- list()
+    m_vars2 <- lapply(m_vars, as.matrix)
+    m_res <- MIcombine(m_fe, m_vars2)
+}
+
+cnty_data <- read_csv("data/cnty_data.csv")
+
+### 2006 (Table 2)
 hhn06 <- read_dta("data/pew/haves_havenots/Sept06/Sept06NIIc.dta") # Converted first with StatTransfer as read_sav didn't work
 hhn06x <- hhn_format(hhn06, cfips="fips", dh="q52", hn="q53")
 
-hhn06x_mi <- hhn_mi(hhn06x)
+hhn06x_mi <- hhn_mi(hhn06x) # multiply impute missing data
 
-format_mi_results <- function(m) {
-    m.fe <- MIextract(m, fun=fixef) # see https://books.google.com/books?id=EbLrQrBGid8C&pg=PA384
-    m.vars <- MIextract(m, fun=vcov)
-    m.vars2 <- list()
-    m.vars2 <- lapply(m.vars, as.matrix)
-    m.res <- MIcombine(m.fe, t2.mi.vars2)
-}
-
-t2.mi <- with(hhn06x_mi, 
+t2 <- with(hhn06x_mi, 
               glmer(formula = div_hhn~gini_cnty+
                         income_cnty+black_cnty+perc_bush04+pop_cnty+
                         income+educ+age+male+union+emp+partyid+ideo+attend+
                         (1|fips), family=binomial(link="logit")))
-t2.mi.res <- format_mi_results(t2.mi)
-summary(t2.mi.res)
+t2_res <- format_mi_results(t2)
+summary(t2_res)
 
 
-# additional data
-# hhn05 available with fips (Oct05NII, all controls)
-hhn05 <- read_sav("data/pew/haves_havenots/Oct05NII/Oct05NIIc.sav")
-
-# hhn07 available with fips (July07 missing labor, employ)
-hhn07 <- read_sav("data/pew/haves_havenots/July07/July07c.sav")
-
-# hhn08 available with fips (Jan08, all controls; EarlyOct2008 missing labor, attend)
-hhn0801 <- read_dta("data/pew/haves_havenots/Jan08/Jan08c.dta")
-hhn0810 <- read_sav("data/pew/haves_havenots/EarlyOct08/EarlyOct08c.sav")
-
-# hhn09 available with fips (Values09, all controls but hhn asked only of half--survey used in Table 1!)
-hhn09 <- read_sav("data/pew/haves_havenots/Values09/Values09c.sav")
+### additional data
+# load all datasets
+hhn05 <- read_sav("data/pew/haves_havenots/Oct05NII/Oct05NIIc.sav") # Oct05NII (all controls)
+hhn06 <- read_dta("data/pew/haves_havenots/Sept06/Sept06NIIc.dta") # Converted first with StatTransfer as read_sav didn't work
+hhn07 <- read_sav("data/pew/haves_havenots/July07/July07c.sav") # July07 (missing labor, employ)
+hhn0801 <- read_dta("data/pew/haves_havenots/Jan08/Jan08c.dta") # Jan08 (all controls)
+hhn0810 <- read_sav("data/pew/haves_havenots/EarlyOct08/EarlyOct08c.sav") # EarlyOct2008 (missing labor, attend)
+hhn09 <- read_sav("data/pew/haves_havenots/Values09/Values09c.sav") # Values09 (all controls but only half hhn; survey used in Table 1!)
 
 # no fips in Apr10-political-future;
 #               Sept 22-25 2011 omnibus public; or 
@@ -108,26 +107,26 @@ hhn09 <- read_sav("data/pew/haves_havenots/Values09/Values09c.sav")
 # format all datasets
 hhn05x <- hhn_format(hhn05, cfips="qfips", dh="q52", hn="q53")
 hhn06x <- hhn_format(hhn06, cfips="fips", dh="q52", hn="q53")
-hhn07x <- hhn_format(hhn07, cfips="qfips", dh="qb28", hn="qb29")
+hhn07x <- hhn_format(hhn07, cfips="qfips", dh="q40", hn="q41")
 hhn0801x <- hhn_format(hhn0801, cfips="fips", dh="q33", hn="q34")
 hhn0810x <- hhn_format(hhn0810, cfips="zfips", dh="q56", hn="q57")
 hhn09x <- hhn_format(hhn09, cfips="fips", dh="qb28", hn="qb29")
 
+# combine data
+hhn <- rbind(hhn05x, hhn06x, hhn07x, hhn0801x, hhn0810x, hhn09x)
+
+hhn_mi <- hhn_mi(hhn)
+
+t2_all <- with(hhn_mi, 
+              glmer(formula = div_hhn~gini_cnty+
+                        income_cnty+black_cnty+perc_bush04+pop_cnty+
+                        income+educ+age+male+union+emp+partyid+ideo+attend+
+                        (1|fips), family=binomial(link="logit")))
+t2_all_res <- format_mi_results(t2_all)
+summary(t2_all_res)
+beep()
 
 
-
-# combined data
-hhn0506 <- rbind(hhn05x, hhn06x)
-
-hhn0506 <- left_join(hhn0506, cnty_data)
-hhn0506.w <- hhn0506[hhn0506$white==1, ]
-
-t2_0506.rwd <- glmer(formula = div_hhn~gini_cnty+
-                         income_cnty+black_cnty+perc_bush04+pop_cnty+
-                         income+educ+age+male+union+emp+partyid+ideo+attend+
-                         (1|fips),
-                     data=hhn0506.w, family=binomial(link="logit"))
-summary(t2_0506.rwd)
 
 # t2_0506.plot <- interplot(t2_0506.rwd, "gini_cnty", "income",
 #                        xmin = min(t$income_i), xmax = max(t$income_i),
@@ -136,44 +135,3 @@ summary(t2_0506.rwd)
 #                        ylab = "County Income Inequality")
 # t2_0506.plot <- t2_0506.plot + geom_hline(yintercept=0, colour="grey80", linetype="dashed")
 #ggsave(file="t2_0506_plot.pdf", plot=t1m1.plot, width=8, height=5.25)
-
-
-
-
-
-
-
-# combined data
-hhn0506.w.info <- mi.info(hhn0506.w)
-hhn0506.w.info <- update(hhn0506.w.info, "include", list(resp=F, fips=F, state=F))
-hhn0506.w.info <- update(hhn0506.w.info, "type", list(
-    income = "ordered-categorical",
-    educ = "ordered-categorical",
-    attend  = "ordered-categorical"))
-hhn0506.w.pre <- mi.preprocess(hhn0506.w, hhn0506.w.info)
-
-hhn0506.w.mi <- mi(hhn0506.w.pre, n.imp=10, n.iter=30, seed=324, max.minutes=60)
-
-hhn0506.w.mi.list <- mi.completed(hhn0506.w.mi)
-hhn0506.w.mi.list2 <- imputationList(hhn0506.w.mi.list)
-t2.c.mi <- with(hhn0506.w.mi.list2, 
-                glmer(formula = div_hhn~gini_cnty+
-                          income_cnty+black_cnty+perc_bush04+pop_cnty+
-                          income+educ+age+male+union+emp+partyid+ideo+attend+
-                          (1|fips), family=binomial(link="logit")))
-t2.c.mi.fe <- MIextract(t2.c.mi, fun=fixef) # https://books.google.com/books?id=EbLrQrBGid8C&pg=PA384
-t2.c.mi.vars <- MIextract(t2.c.mi, fun=vcov)
-t2.c.mi.vars2 <- list()
-t2.c.mi.vars2 <- lapply(t2.c.mi.vars, as.matrix)
-t2.c.mi.res <- MIcombine(t2.c.mi.fe, t2.c.mi.vars2)
-summary(t2.c.mi.res)
-
-b1m1.mi.plot <- interplot(b1m1.mi, "gini_cnty", "income", steps=9,
-                          labels = t$inc_labels,
-                          xlab = "Family Income",
-                          ylab = "County Income Inequality") 
-b1m1.mi.plot <- b1m1.mi.plot + 
-    geom_hline(yintercept=0, colour="grey80", linetype="dashed")
-ggsave(file="b1m1_mi_plot.pdf", plot=b1m1.mi.plot, width=8, height=5.25)
-
-b1m1.mi.coef <- interplot(b1m1.mi, "gini_cnty", "income", steps=9, plot=F)
