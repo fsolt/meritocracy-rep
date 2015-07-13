@@ -359,4 +359,5 @@ val2007$white <- ifelse(val2007$race==1 & val2007$hisp!=1, 1, 0)
 prop.table(table(val2007$rej_merit[val2007$white==1]))
 
 # DV Version C: 2009, one four-point item collapsed
-# 2009 Values Survey (also includes other four-point item?)
+# 2009 Values Survey (also includes the other four-point item(!))
+val2009 <- read_sav("data/pew/haves_havenots/Values09/Values09c.sav") # Values09 (all controls but only Survey B asked hhn; survey used in Table 1!)
