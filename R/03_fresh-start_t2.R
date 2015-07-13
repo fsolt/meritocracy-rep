@@ -1,5 +1,6 @@
 library(readr)
 library(haven)
+library(ggplot2)
 library(dplyr)
 library(magrittr)
 library(stringr)
@@ -8,6 +9,7 @@ library(betareg)
 library(truncnorm)
 library(mitools)
 library(lme4)
+library(beepr)
 
 ### Have vs. have-nots 
 # questions asked, with fips, in *every year* from 2005-2009, though NJL uses only 2006
@@ -94,11 +96,12 @@ summary(t2_res)
 ### additional data
 # load all datasets
 hhn05 <- read_sav("data/pew/haves_havenots/Oct05NII/Oct05NIIc.sav") # Oct05NII (all controls)
-hhn06 <- read_dta("data/pew/haves_havenots/Sept06/Sept06NIIc.dta") # Converted first with StatTransfer as read_sav didn't work
+hhn06 <- read_dta("data/pew/haves_havenots/Sept06/Sept06NIIc.dta") # used in Table 2
 hhn07 <- read_sav("data/pew/haves_havenots/July07/July07c.sav") # July07 (missing labor, employ)
 hhn0801 <- read_dta("data/pew/haves_havenots/Jan08/Jan08c.dta") # Jan08 (all controls)
 hhn0810 <- read_sav("data/pew/haves_havenots/EarlyOct08/EarlyOct08c.sav") # EarlyOct2008 (missing labor, attend)
-hhn09 <- read_sav("data/pew/haves_havenots/Values09/Values09c.sav") # Values09 (all controls but only half hhn; survey used in Table 1!)
+hhn09 <- read_sav("data/pew/haves_havenots/Values09/Values09c.sav") %>% # Values09 (all controls, but only Survey B asked hhn)
+    filter(values==2) # keep only Survey B, which asked hhn questions
 
 # no fips in Apr10-political-future;
 #               Sept 22-25 2011 omnibus public; or 
@@ -114,6 +117,7 @@ hhn09x <- hhn_format(hhn09, cfips="fips", dh="qb28", hn="qb29")
 
 # combine data
 hhn <- rbind(hhn05x, hhn06x, hhn07x, hhn0801x, hhn0810x, hhn09x)
+rm(list = ls(pattern="hhn0.*")) # free memory
 
 hhn_mi <- hhn_mi(hhn)
 
@@ -124,14 +128,43 @@ t2_all <- with(hhn_mi,
                         (1|fips), family=binomial(link="logit")))
 t2_all_res <- format_mi_results(t2_all)
 summary(t2_all_res)
+# beep()
+
+# Cross-classified model with level for survey makes no difference
+# t2_all2 <- with(hhn_mi, 
+#                glmer(formula = div_hhn~gini_cnty+
+#                          income_cnty+black_cnty+perc_bush04+pop_cnty+
+#                          income+educ+age+male+union+emp+partyid+ideo+attend+
+#                          (1|fips) + (1|survey), family=binomial(link="logit")))
+# t2_all2_res <- format_mi_results(t2_all2)
+# summary(t2_all2_res)
+# beep()
+
+# No sign of interaction either: gini_cnty not significant at any income
+# t2_all3 <- with(hhn_mi, 
+#                 glmer(formula = div_hhn~gini_cnty+
+#                           income_cnty+black_cnty+perc_bush04+pop_cnty+
+#                           income+educ+age+male+union+emp+partyid+ideo+attend+gini_cnty:income +
+#                           (1|fips) + (1|survey), family=binomial(link="logit")))
+# t2_all3_res <- format_mi_results(t2_all3)
+# summary(t2_all3_res)
+# interplot(t2_all3, "gini_cnty", "income")
+# beep()
+
+
+# Do any other datasets yield 2006 result? no
+yrs <- c(2005, 2006, 2007, 200801, 200810, 2009)
+t2_by_surv <- list()
+
+for (i in 1:length(yrs)) {
+    ds <- lapply(hhn_mi$imputations, function(x) x[x$survey==yrs[i],, drop=F]) %>% imputationList()
+    res <- with(ds, 
+              glmer(formula = div_hhn~gini_cnty+
+                        income_cnty+black_cnty+perc_bush04+pop_cnty+
+                        income+educ+age+male+union+emp+partyid+ideo+attend+
+                        (1|fips), family=binomial(link="logit")))
+    t2_by_surv[[i]] <- format_mi_results(res)
+}
+lapply(t2_by_surv, summary)
 beep()
 
-
-
-# t2_0506.plot <- interplot(t2_0506.rwd, "gini_cnty", "income",
-#                        xmin = min(t$income_i), xmax = max(t$income_i),
-#                        steps = 9, labels = t$inc_labels,
-#                        xlab = "Family Income",
-#                        ylab = "County Income Inequality")
-# t2_0506.plot <- t2_0506.plot + geom_hline(yintercept=0, colour="grey80", linetype="dashed")
-#ggsave(file="t2_0506_plot.pdf", plot=t1m1.plot, width=8, height=5.25)
