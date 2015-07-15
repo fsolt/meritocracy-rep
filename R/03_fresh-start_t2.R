@@ -156,16 +156,17 @@ p <- rbind(t2_res, t2_all_res) %>% dwplot +
                       name = "Dataset",
                       breaks = c("t2", "t2_all"),
                       labels = c("Pew 2006", "Pew 2005-2009")) + 
-    theme(plot.margin = unit(c(1,1,1,1.8), "lines")) +
+    theme(plot.margin = unit(c(1, 1, 1, 1.3), "lines")) +
     annotation_custom(
-        grob = textGrob(label = "County Level", gp = gpar(cex = .7), rot=90),
+        grob = textGrob(label = "County Level", gp = gpar(cex = .7, fontface="italic"), rot=90),
         ymin = 12, ymax = 12, 
         xmin = -7.8, xmax = -7.8) +
     annotation_custom(grob = linesGrob(), xmin = -7.5, xmax = -7.5, ymin = 9.6, ymax = 14.3) +
     annotation_custom(grob = linesGrob(), xmin = -7.5, xmax = -7, ymin = 9.6, ymax = 9.6) +
     annotation_custom(grob = linesGrob(), xmin = -7.5, xmax = -7, ymin = 14.3, ymax = 14.3) +
+    theme(plot.margin = unit(c(1, 1, 1, 1.3), "lines")) +
     annotation_custom(
-        grob = textGrob(label = "Individual Level", gp = gpar(cex = .7), rot=90),
+        grob = textGrob(label = "Individual Level", gp = gpar(cex = .7, fontface="italic"), rot=90),
         ymin = 5, ymax = 5, 
         xmin = -7.8, xmax = -7.8) +
     annotation_custom(grob = linesGrob(), xmin = -7.5, xmax = -7.5, ymin = .7, ymax = 9.4) +
