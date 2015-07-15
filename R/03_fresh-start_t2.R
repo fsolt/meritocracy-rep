@@ -11,6 +11,7 @@ library(mitools)
 library(lme4)
 library(beepr)
 library(dotwhisker)
+library(grid)
 
 ### Have vs. have-nots 
 # questions asked, with fips, in *every year* from 2005-2009, though NJL uses only 2006
@@ -77,14 +78,21 @@ format_mi_results <- function(m) {
     m_res <- MIcombine(m_fe, m_vars2)
     b <- m_res$coefficients
     se <- diag(m_res$variance^.5)
-    data.frame(term = names(b),
+    df <- data.frame(term = names(b),
                estimate = b,
                std.error = se,
                model = deparse(substitute(m)), 
                stringsAsFactors = FALSE)
+    df %>% filter(term!="(Intercept)")
 }
 
 cnty_data <- read_csv("data/cnty_data.csv")
+vars_list <- c("gini_cnty", "income_cnty", "black_cnty", "perc_bush04", "pop_cnty", "income",
+              "educ", "age", "male", "union", "emp", "partyid", "ideo", "attend", "(Intercept)")
+vars_proper <- c("Gini Index", "Median Household Income", "Percent Black", "Bush Vote", 
+                "Total Population", "Income", "Education", "Age", "Male", "Union Membership",
+                "Employed", "Republican Party ID", "Conservative Ideology",
+                "Religious Attendance")
 
 ### 2006 (Table 2)
 hhn06 <- read_dta("data/pew/haves_havenots/Sept06/Sept06NIIc.dta") # Converted first with StatTransfer as read_sav didn't work
@@ -125,7 +133,7 @@ hhn09x <- hhn_format(hhn09, cfips="fips", dh="qb28", hn="qb29")
 
 # combine data
 hhn <- rbind(hhn05x, hhn06x, hhn07x, hhn0801x, hhn0810x, hhn09x)
-rm(list = ls(pattern="hhn0.*")) # free memory
+rm(list = ls(pattern="hhn0.*")) # free up memory
 
 hhn_mi <- hhn_mi(hhn)
 
@@ -136,7 +144,37 @@ t2_all <- with(hhn_mi,
                         (1|fips), family=binomial(link="logit")))
 t2_all_res <- format_mi_results(t2_all)
 summary(t2_all_res)
-# beep()
+
+p <- rbind(t2_res, t2_all_res) %>% dwplot +
+    scale_y_discrete(breaks = length(vars_proper):1, labels=vars_proper) +
+    theme_bw() + xlab("Coefficient Estimate") + ylab("") +
+    geom_vline(xintercept = 0, colour = "grey60", linetype = 2) +
+    theme(legend.justification=c(1,0), legend.position=c(1,0),
+          legend.background = element_rect(colour="grey80"),
+          legend.title.align = .5) +
+    scale_colour_grey(start = .5, end = .7,
+                      name = "Dataset",
+                      breaks = c("t2", "t2_all"),
+                      labels = c("Pew 2006", "Pew 2005-2009")) + 
+    theme(plot.margin = unit(c(1,1,1,1.8), "lines")) +
+    annotation_custom(
+        grob = textGrob(label = "County Level", gp = gpar(cex = .7), rot=90),
+        ymin = 12, ymax = 12, 
+        xmin = -7.8, xmax = -7.8) +
+    annotation_custom(grob = linesGrob(), xmin = -7.5, xmax = -7.5, ymin = 9.6, ymax = 14.3) +
+    annotation_custom(grob = linesGrob(), xmin = -7.5, xmax = -7, ymin = 9.6, ymax = 9.6) +
+    annotation_custom(grob = linesGrob(), xmin = -7.5, xmax = -7, ymin = 14.3, ymax = 14.3) +
+    annotation_custom(
+        grob = textGrob(label = "Individual Level", gp = gpar(cex = .7), rot=90),
+        ymin = 5, ymax = 5, 
+        xmin = -7.8, xmax = -7.8) +
+    annotation_custom(grob = linesGrob(), xmin = -7.5, xmax = -7.5, ymin = .7, ymax = 9.4) +
+    annotation_custom(grob = linesGrob(), xmin = -7.5, xmax = -7, ymin = 9.4, ymax = 9.4) +
+    annotation_custom(grob = linesGrob(), xmin = -7.5, xmax = -7, ymin = .7, ymax = .7)
+gt <- ggplot_gtable(ggplot_build(p)) # Code to override clipping
+gt$layout$clip[gt$layout$name == "panel"] <- "off"
+grid.draw(gt)
+ggsave("doc/figures/t2.pdf")
 
 # Cross-classified model with level for survey makes no difference
 # t2_all2 <- with(hhn_mi, 
@@ -159,7 +197,7 @@ summary(t2_all_res)
 # interplot(t2_all3, "gini_cnty", "income")
 # beep()
 
-# Do any other datasets yield 2006 result? no
+# Does any other single dataset yield same result as 2006? no
 yrs <- c(2005, 2006, 2007, 200801, 200810, 2009)
 t2_by_surv <- list()
 
@@ -179,11 +217,9 @@ gini_results <- t2_by_survey %>% filter(term=="gini_cnty") %>% select(-term) %>%
     rename(term=model) # re-arrange results for Gelman's "secret weapon" plot
 
 dwplot(gini_results) +
-    theme_bw() + xlab("Coefficient Estimate") + ylab("") + 
+    theme_bw() + xlab("Coefficient Estimate, County Gini Index") + ylab("") + 
     scale_y_discrete(breaks = 6:1, labels=c("Oct 2005", "Sept 2006", "July 2007", 
                                             "Jan 2008", "Oct 2008", "Apr 2009")) +
     geom_vline(xintercept = 0, colour = "grey60", linetype = 2) + 
-    ggtitle("Estimated Coefficients of Local Inequality on the\nPerception that American Society Is\nDivided into 'Haves' and 'Have-Nots'\nAcross Six Pew Research Center Surveys") +
-    theme(plot.title = element_text(face="bold"), 
-          legend.position = "none")
-
+    theme(legend.position = "none")
+ggsave("doc/figures/t2_by_survey.pdf", width = 6, height = 3)
