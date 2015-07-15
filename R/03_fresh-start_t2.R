@@ -10,6 +10,7 @@ library(truncnorm)
 library(mitools)
 library(lme4)
 library(beepr)
+library(dotwhisker)
 
 ### Have vs. have-nots 
 # questions asked, with fips, in *every year* from 2005-2009, though NJL uses only 2006
@@ -76,13 +77,10 @@ format_mi_results <- function(m) {
     m_res <- MIcombine(m_fe, m_vars2)
     b <- m_res$coefficients
     se <- diag(m_res$variance^.5)
-    data.frame(Value = b,
-               Coefficient = names(b),
-               HighInner = b, # no inner CI, but variable is still needed by coefplot
-               LowInner = b,
-               HighOuter = b+qnorm(.975)*se,
-               LowOuter = b-qnorm(.975)*se,
-               Model = deparse(substitute(m)), 
+    data.frame(term = names(b),
+               estimate = b,
+               std.error = se,
+               model = deparse(substitute(m)), 
                stringsAsFactors = FALSE)
 }
 
@@ -161,7 +159,6 @@ summary(t2_all_res)
 # interplot(t2_all3, "gini_cnty", "income")
 # beep()
 
-
 # Do any other datasets yield 2006 result? no
 yrs <- c(2005, 2006, 2007, 200801, 200810, 2009)
 t2_by_surv <- list()
@@ -173,40 +170,20 @@ for (i in 1:length(yrs)) {
                         income_cnty+black_cnty+perc_bush04+pop_cnty+
                         income+educ+age+male+union+emp+partyid+ideo+attend+
                         (1|fips), family=binomial(link="logit")))
-    t2_by_surv[[i]] <- format_mi_results(res)
+    tidy_res <- format_mi_results(res)
+    tidy_res$model <- paste("Pew", yrs[i])
+    if (i==1) t2_by_survey <- tidy_res else t2_by_survey <- rbind(t2_by_survey, tidy_res)
 }
-lapply(t2_by_surv, print)
-beep()
 
-coef_plot <- function(df, coef, lower, upper, varnames, groupname = NULL, xlab, label.pos = c(0, 1, 2), fontsize = NULL, monochrome = NULL)
-{
-    # This function creates a dot-and-whisker plot for regression coefficients, first differences, etc.
-    # It requires the following arguments:
-    # coef: a (numeric) vector of coefficients/first differences/...
-    ## If using groups of variables: enter NA for the empty coefficient designating a group
-    # se: a vector of standard errors
-    ## If using groups of variables: enter NA for the empty SE designating a group
-    # varnames: a (character) vector of variable names
-    ## If using groups of variables: enter the group name where you want it to appear
-    # groupname: an optional (character) vector of variable groups with the same length as varnames
-    # xlab: a character vector of length 1 with the label for the x-axis
-    # label.pos: Position of the x-axis tick labels; 0 (default) for left, 0.5 for center, 1 for right
-    # monochrome: 0 for colors, 1 for black dots and whiskers
-    # Optional arguments:
-    # fontsize: an optional numeric vector of varying font sizes (if using groups)
-    
-    var <- seq(length(varnames), 1, by = -1)
-    group <- as.numeric(as.factor(groupname))
-    results <- data.frame(var=var, varnames=varnames, coef=coef, lower = lower, upper = upper, group=group, groupname=groupname)
-  
-    ggplot(results, aes(x = coef, y = as.factor(var))) +
-        geom_point(colour = "black") + 
-        geom_segment(aes(x = lower, xend = upper, y = var, yend = var), colour = "black") +
-        theme_bw() + xlab(paste(xlab)) + ylab("") + 
-        scale_y_discrete(breaks=results$var, labels=results$varnames) + 
-        geom_vline(xintercept = 0, colour = "blue", linetype = 2) + 
-        theme(legend.position = "none", 
-              axis.text.y = element_text(colour = "black", hjust = label.pos),
-              axis.text.x = element_text(colour = "black"))
+gini_results <- t2_by_survey %>% filter(term=="gini_cnty") %>% select(-term) %>% 
+    rename(term=model) # re-arrange results for Gelman's "secret weapon" plot
 
-}
+dwplot(gini_results) +
+    theme_bw() + xlab("Coefficient Estimate") + ylab("") + 
+    scale_y_discrete(breaks = 6:1, labels=c("Oct 2005", "Sept 2006", "July 2007", 
+                                            "Jan 2008", "Oct 2008", "Apr 2009")) +
+    geom_vline(xintercept = 0, colour = "grey60", linetype = 2) + 
+    ggtitle("Estimated Coefficients of Local Inequality on the\nPerception that American Society Is\nDivided into 'Haves' and 'Have-Nots'\nAcross Six Pew Research Center Surveys") +
+    theme(plot.title = element_text(face="bold"), 
+          legend.position = "none")
+
