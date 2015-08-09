@@ -11,7 +11,6 @@ library(mitools)
 library(lme4)
 library(beepr)
 library(dotwhisker)
-library(grid)
 
 ### Have vs. have-nots 
 # questions asked, with fips, in *every year* from 2005-2009, though NJL uses only 2006
@@ -145,37 +144,27 @@ t2_all <- with(hhn_mi,
 t2_all_res <- format_mi_results(t2_all)
 summary(t2_all_res)
 
-p <- rbind(t2_res, t2_all_res) %>% dwplot +
+level_brackets <- list(c("County-Level", "gini_cnty", "pop_cnty"),
+                       c("Individual-Level", "income", "attend"))
+
+p <- t2_res %>% by_2sd(hhn06x) %>%
+    rbind(t2_all_res %>% by_2sd(hhn)) %>% dwplot +
     scale_y_discrete(breaks = length(vars_proper):1, labels=vars_proper) +
-    theme_bw() + xlab("Coefficient Estimate") + ylab("") +
+    theme_bw() + xlab("Coefficient Estimate") +
     geom_vline(xintercept = 0, colour = "grey60", linetype = 2) +
-    theme(legend.justification=c(1,0), legend.position=c(1,0),
+    theme(legend.justification=c(0,1), legend.position=c(0,1),
           legend.background = element_rect(colour="grey80"),
           legend.title.align = .5) +
     scale_colour_grey(start = .5, end = .7,
                       name = "Dataset",
                       breaks = c("t2", "t2_all"),
-                      labels = c("Pew 2006", "Pew 2005-2009")) + 
-    theme(plot.margin = unit(c(1, 1, 1, 1.3), "lines")) +
-    annotation_custom(
-        grob = textGrob(label = "County Level", gp = gpar(cex = .7, fontface="italic"), rot=90),
-        ymin = 12, ymax = 12, 
-        xmin = -7.8, xmax = -7.8) +
-    annotation_custom(grob = linesGrob(), xmin = -7.5, xmax = -7.5, ymin = 9.6, ymax = 14.3) +
-    annotation_custom(grob = linesGrob(), xmin = -7.5, xmax = -7, ymin = 9.6, ymax = 9.6) +
-    annotation_custom(grob = linesGrob(), xmin = -7.5, xmax = -7, ymin = 14.3, ymax = 14.3) +
-    theme(plot.margin = unit(c(1, 1, 1, 1.3), "lines")) +
-    annotation_custom(
-        grob = textGrob(label = "Individual Level", gp = gpar(cex = .7, fontface="italic"), rot=90),
-        ymin = 5, ymax = 5, 
-        xmin = -7.8, xmax = -7.8) +
-    annotation_custom(grob = linesGrob(), xmin = -7.5, xmax = -7.5, ymin = .7, ymax = 9.4) +
-    annotation_custom(grob = linesGrob(), xmin = -7.5, xmax = -7, ymin = 9.4, ymax = 9.4) +
-    annotation_custom(grob = linesGrob(), xmin = -7.5, xmax = -7, ymin = .7, ymax = .7)
-gt <- ggplot_gtable(ggplot_build(p)) # Code to override clipping
-gt$layout$clip[gt$layout$name == "panel"] <- "off"
-grid.draw(gt)
-ggsave("doc/figures/t2.pdf")
+                      labels = c("Pew 2006", "Pew 2005-2009"))
+g <- p %>% add_brackets(level_brackets)
+grid.draw(g)
+pdf("doc/figures/t2.pdf")  
+grid.draw(g)
+dev.off()
+
 
 # Cross-classified model with level for survey makes no difference
 # t2_all2 <- with(hhn_mi, 
