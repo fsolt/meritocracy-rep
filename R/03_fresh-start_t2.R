@@ -105,7 +105,7 @@ t2 <- with(hhn06x_mi,
                         income+educ+age+male+union+emp+partyid+ideo+attend+
                         (1|fips), family=binomial(link="logit")))
 t2_res <- format_mi_results(t2)
-summary(t2_res)
+dwplot(t2_res)
 
 
 ### additional data
@@ -132,7 +132,7 @@ hhn09x <- hhn_format(hhn09, cfips="fips", dh="qb28", hn="qb29")
 
 # combine data
 hhn <- rbind(hhn05x, hhn06x, hhn07x, hhn0801x, hhn0810x, hhn09x)
-rm(list = ls(pattern="hhn0.*")) # free up memory
+rm(list = ls(pattern="hhn0[5789].*")) # free up memory
 
 hhn_mi <- hhn_mi(hhn)
 
@@ -149,10 +149,10 @@ level_brackets <- list(c("County-Level", "gini_cnty", "pop_cnty"),
 
 p <- t2_res %>% by_2sd(hhn06x) %>%
     rbind(t2_all_res %>% by_2sd(hhn)) %>% dwplot +
-    scale_y_discrete(breaks = length(vars_proper):1, labels=vars_proper) +
+    relabel_y_axis(vars_proper) +
     theme_bw() + xlab("Coefficient Estimate") +
     geom_vline(xintercept = 0, colour = "grey60", linetype = 2) +
-    theme(legend.justification=c(0,1), legend.position=c(0,1),
+    theme(legend.justification=c(0, 1), legend.position=c(0, 1),
           legend.background = element_rect(colour="grey80"),
           legend.title.align = .5) +
     scale_colour_grey(start = .5, end = .7,
@@ -203,10 +203,7 @@ for (i in 1:length(yrs)) {
     if (i==1) t2_by_survey <- tidy_res else t2_by_survey <- rbind(t2_by_survey, tidy_res)
 }
 
-gini_results <- t2_by_survey %>% filter(term=="gini_cnty") %>% select(-term) %>% 
-    rename(term=model) # re-arrange results for Gelman's "secret weapon" plot
-
-dwplot(gini_results) +
+secret_weapon(t2_by_survey, "gini_cnty") +
     theme_bw() + xlab("Coefficient Estimate, County Gini Index") + ylab("") + 
     scale_y_discrete(breaks = 6:1, labels=c("Oct 2005", "Sept 2006", "July 2007", 
                                             "Jan 2008", "Oct 2008", "Apr 2009")) +
