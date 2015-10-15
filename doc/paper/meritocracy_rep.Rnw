@@ -51,16 +51,17 @@ How does the context of income inequality affect political and economic attitude
 
 <<label=setup, echo=F, results='hide'>>=
 library(readr)
+library(dplyr)
 
 ### Read data: https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/26584
 pew1 <- read_tsv("../../data/study_26584/Meritocracy Replication Data - Table 1.tab") # Combined Pew surveys
-pew1.w <- pew1[pew1$white==1,]  # Only white respondents
+pew1_w <- pew1 %>% filter(white==1)  # Only white respondents
 
 pew2 <- read_tsv("../../data/study_26584/2006 Pew News Interest Survey_Table 2 Data in Stata Format.tab") # Only 2006 Pew survey
-pew2.w <- pew2[pew2$white==1,] # Only white respondents
+pew2_w <- pew2 %>% filter(white==1) # Only white respondents
 
 pew3 <- read_tsv("../../data/study_26584/Meritocracy Replication Data - Table 3.tab") # Only 2006 Pew survey
-pew3.w <- pew3[pew3$white==1,] # Only white respondents
+pew3_w <- pew3 %>% filter(white==1) # Only white respondents
 
 pew1$year <- 2005
 pew1$year[pew1$survid2006==1] <- 2006
@@ -76,7 +77,7 @@ pew1$year[pew1$survid2009==1] <- 2009
 It has been well known for over a decade that models containing multiplicative interaction terms require particular care in interpretation \citep[see, e.g.,][]{Golder2003a, Braumoeller2004, Brambor2006, Kam2007a}.  As \citet[72]{Brambor2006} wrote, ``the coefficient on X [income] only captures the effect of X on Y [rejection of meritocracy] when Z [income inequality] is zero.''  But in the replication data for Table 1, Model 1, the range of income is (oddly) .21 to 1; the variable never takes on a value of zero.  Figure~\ref{F:coef.t1m1} plots the coefficient estimates at each of the nine levels of income in the Pew data.  The confidence intervals of these estimates all cross zero.  None are statistically significant.  The conclusion of \citet[334]{Newman2015} that this result ``reveals that among low-income citizens, those residing in highly unequal contexts are significantly more likely to reject meritocratic ideals than those in relatively equal contexts'' is therefore erroneous.
 
 \begin{figure}[htbp] 
-  \caption{Logit Coefficients of Local Income Inequality by Respondent Income: Table 1, Model 1, om Replication Data}
+  \caption{Logit Coefficients of Local Income Inequality by Respondent Income: Table 1, Model 1, Original Replication Data}
   \label{F:coef.t1m1}
   \begin{center}
     \includegraphics[width=5.25in]{../figures/t1m1_plot.pdf}
