@@ -120,7 +120,7 @@ summary(t1m1)
 # plot interaction
 t <- data.frame(table(pew1.w$income_i))
 names(t) <- c("income_i", "freq")
-t <- t[t$freq>10, ] # include only observed values (exclude imputed values)
+t <- t[t$freq>10, ] # include only observed values in plot (exclude imputed values)
 t$income_i <- as.numeric(levels(t$income_i))[t$income_i]
 t$inc_labels <- c("<$10k", "$10-20k", "$20-30k", "$30-40k", "$40-50k",
                   "$50-75k", "$75-100k", "$100-150k", ">$150k")
