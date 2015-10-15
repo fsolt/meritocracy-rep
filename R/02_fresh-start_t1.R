@@ -150,7 +150,7 @@ missing$county0 <- NULL # drop tempvar
 
 bush04_cnty %<>% rbind(missing) %>% select(fips, perc_bush04)
 
-acs0509 <- read_csv("data/acs0509-counties.csv")
+acs0509 <- read_csv("data/acs0509-counties.csv") # this throws warnings; they are irrelevant
 names(acs0509) <- tolower(names(acs0509))
 acs0509 <- mutate(acs0509,
                   fips = as.numeric(gsub("05000US", "", geoid)),
@@ -158,8 +158,7 @@ acs0509 <- mutate(acs0509,
                   income_cnty = b19013_001e/10000,
                   black_cnty = b02001_003e/b02001_001e,
                   pop_cnty = b02001_001e/10000)
-cnty_data <- select(acs0509, fips:pop_cnty)
-cnty_data %<>% left_join(bush04_cnty)
+cnty_data <- select(acs0509, fips:pop_cnty) %>% left_join(bush04_cnty)
 write_csv(cnty_data, "data/cnty_data.csv")
 
 # DV Version A: 2005 & 2006, dichotomous item
@@ -199,7 +198,7 @@ p2005x$unemp <- ifelse((p2005$employ==3 | p2005$employ==9), NA, 0) # No employ2 
 #                              to = c(102, 52, 18, 5, 2, 0, NA))
 
 p2005x$year <- 2005
-p2005x.w <- p2005x[p2005x$white==1, -c(9)]
+p2005x_w <- p2005x %>% filter(white==1) %>% select(-white)
 
 
 # Pew 2006 Immigration Survey
@@ -240,27 +239,18 @@ p2006x$unemp[p2006$employ==9 | p2006$employ2==9] <- NA
 #                              to = c(102, 52, 18, 5, 2, 0, NA))
 
 p2006x$year <- 2006
-p2006x.w <- p2006x[p2006x$white==1, -c(9)]
-
+p2006x_w <- p2006x %>% filter(white==1) %>% select(-white)
 
 
 # Combine 2005 and 2006
 p1x <- rbind(p2005x, p2006x)
 
-pew1.cnty <- pew1 %>% group_by(fips) %>% summarise_each(funs(mean)) %>%
-    select(matches("cnty|fips|bush"))   # I've confirmed that there's just one value per county 
+# pew1_cnty <- pew1 %>% group_by(fips) %>% summarise_each(funs(mean)) %>%
+#     select(matches("cnty|fips|bush"))   # I've confirmed that there's just one value per county 
 
-acs0509 <- read_csv("b19083_001e.csv") # income distribution data from five-year ACS
-acs0509$fips <- as.numeric(gsub("05000US", "", acs0509$geoid))
-acs0509$gini_cnty <- acs0509$b19083_001e
-acs0509c <- acs0509[ , 7:8]
+p1x <- left_join(p1x, cnty_data)
 
-p1x <- left_join(p1x, pew1.cnty)
-p1x$ginicnty <- NULL
-p1x <- left_join(p1x, acs0509c)
-
-p1x.w <- p1x[p1x$white==1, -c(9)]
-p1x.w.sc <- p1x[p1x$white==1, c(1:3)]
+p1x_w <- p1x %>% filter(white==1) %>% select(-white)
 
 
 # Rowwise deletion
@@ -268,19 +258,19 @@ p1x.w.sc <- p1x[p1x$white==1, c(1:3)]
 #                      income_cnty+black_cnty+perc_bush04+pop_cnty+
 #                      educ+age+male+unemp+union+partyid+ideo+attend+
 #                      (1+income|fips),
-#                  data=p2005x.w,family=binomial(link="logit"))
+#                  data=p2005x_w,family=binomial(link="logit"))
 # 
 # t1m1.06 <- glmer(formula = rej_merit~gini_cnty+income+gini_cnty:income+
 #                      income_cnty+black_cnty+perc_bush04+pop_cnty+
 #                      educ+age+male+unemp+union+partyid+ideo+attend+
 #                      (1+income|fips),
-#                  data=p2006x.w,family=binomial(link="logit"))
+#                  data=p2006x_w,family=binomial(link="logit"))
 
 b1m1.r <- glmer(formula = rej_merit~gini_cnty+income+gini_cnty:income+
                     income_cnty+black_cnty+perc_bush04+pop_cnty+
                     educ+age+male+unemp+union+partyid+ideo+attend+
                     (1+income|fips),
-                data=p1x.w, family=binomial(link="logit"))
+                data=p1x_w, family=binomial(link="logit"))
 
 
 # Multiply impute missing values with mi
