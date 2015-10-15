@@ -203,10 +203,10 @@ for (i in 1:length(yrs)) {
     if (i==1) t2_by_survey <- tidy_res else t2_by_survey <- rbind(t2_by_survey, tidy_res)
 }
 
-secret_weapon(t2_by_survey, "gini_cnty") +
+secret_weapon(t2_by_survey %>% arrange(desc(model)), "gini_cnty") +
     theme_bw() + xlab("Coefficient Estimate, County Gini Index") + ylab("") + 
-    scale_y_discrete(breaks = 6:1, labels=c("Oct 2005", "Sept 2006", "July 2007", 
-                                            "Jan 2008", "Oct 2008", "Apr 2009")) +
+    relabel_y_axis(rev(c("Oct 2005", "Sept 2006", "July 2007", 
+                                            "Jan 2008", "Oct 2008", "Apr 2009"))) +
     geom_vline(xintercept = 0, colour = "grey60", linetype = 2) + 
-    theme(legend.position = "none")
+    theme(legend.position = "none") + coord_flip()
 ggsave("doc/figures/t2_by_survey.pdf", width = 6, height = 3)
