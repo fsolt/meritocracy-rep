@@ -11,7 +11,7 @@ library(mi)
 library(mitools)
 
 interplot0 <- function(m, var1, var2, xlab=NULL, ylab=NULL, 
-                       seed=324, sims=1000, steps=100, xmin=NA,
+                       seed=324, sims=5000, steps=100, xmin=NA,
                        xmax=NA, labels=NULL, plot=TRUE) {
     require(arm)
     require(ggplot2)
@@ -272,6 +272,8 @@ b1m1.r <- glmer(formula = rej_merit~gini_cnty+income+gini_cnty:income+
                     (1+income|fips),
                 data=p1x_w, family=binomial(link="logit"))
 
+interplot0(b1m1.r, "gini_cnty", "income")
+
 
 # Multiply impute missing values with mi
 p1x.w.info <- mi.info(p1x.w)
@@ -307,6 +309,7 @@ b1m1.mi.plot <- b1m1.mi.plot +
 ggsave(file="b1m1_mi_plot.pdf", plot=b1m1.mi.plot, width=8, height=5.25)
 
 b1m1.mi.coef <- interplot(b1m1.mi, "gini_cnty", "income", steps=9, plot=F)
+
 
 # Pew 2007 (to evaluate mixing DVs)
 p2007 <- read_sav("Pew/dataset_Religious_Landscape_Survey_Data/Religious Landscape Survey Data - Continental US.sav")
