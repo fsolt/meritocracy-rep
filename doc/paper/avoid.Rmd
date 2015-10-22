@@ -12,5 +12,5 @@ discuss confirmation bias and garden of forking paths
 1. examine all available data
 1. use consistent measures
 1. recode with care
-1. impute missing data
+1. multiply impute missing data
 1. plot interaction terms
