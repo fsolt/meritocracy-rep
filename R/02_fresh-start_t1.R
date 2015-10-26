@@ -95,60 +95,10 @@ interplot0 <- function(m, var1, var2, xlab=NULL, ylab=NULL,
 
 ##### Starting fresh 
 # county data
-fips_cnty <- read_csv("https://raw.githubusercontent.com/raypereda/fips-county-codes/master/lib/national.txt", 
-                      col_types="ccccc") 
-names(fips_cnty) <- tolower(gsub(" ", "_", names(fips_cnty)))
-fips_cnty$fips <- as.numeric(do.call(paste0, c(fips_cnty[, c(2,3)])))
-fips_cnty$county <- tolower(gsub(" County| Parish", "", fips_cnty$county_name))
-fips_cnty$county <- gsub(" ", "", fips_cnty$county)
+elec04_cnty <- read_csv("http://wiki.stat.ucla.edu/socr/uploads/5/5f/SOCR_Data_US_Elections_Counties2004_v1.csv.doc",
+                        skip = 1) %>% select(fips = PCountyFIPS,
+                                             perc_bush = Bush_pct)
 
-bush04 <- read_tsv("http://bactra.org/election/vote-counts-with-NE-aggregated")
-bush04$perc_bush04 <- with(bush04, Bush/(Bush+Kerry+Nader))
-names(bush04) <- tolower(names(bush04))
-bush04$county <- tolower(gsub(" County| Parish", "", bush04$county))
-bush04$county <- gsub("saint", "st.", bush04$county)
-bush04$county <- gsub(" ", "", bush04$county)
-bush04$county[(bush04$state=="LA"|bush04$state=="MS") & bush04$county=="jeffdavis"] <- "jeffersondavis"
-bush04$county[(bush04$state=="ME") & bush04$county=="linc"] <- "lincoln"
-bush04$county[(bush04$state=="ME") & bush04$county=="andr"] <- "androscoggin"
-bush04$county[(bush04$state=="ME") & bush04$county=="pen-s"] <- "penobscot"
-bush04$county[(bush04$state=="ME") & bush04$county=="som-s"] <- "somerset"
-bush04$county[(bush04$state=="ME") & bush04$county=="oxf-s"] <- "oxford"
-bush04$county[(bush04$state=="MA") & bush04$county=="hamd"] <- "hamden"
-bush04$county[(bush04$state=="MA") & bush04$county=="esse"] <- "essex"
-bush04$county[(bush04$state=="MA") & bush04$county=="hams"] <- "hampshire"
-bush04$county[(bush04$state=="NH") & bush04$county=="graf"] <- "grafton"
-bush04$county[(bush04$state=="NY") & bush04$county=="manhattan"] <- "newyork"
-bush04$county[(bush04$state=="NY") & bush04$county=="statenisland"] <- "richmond"
-bush04$county[(bush04$state=="NY") & bush04$county=="brooklyn"] <- "kings"
-bush04$county[(bush04$state=="VT") & bush04$county=="fran"] <- "franklin"
-bush04$county[(bush04$state=="VT") & bush04$county=="wins"] <- "windsor"
-bush04$county[(bush04$state=="VT") & bush04$county=="addi"] <- "addison"
-bush04$county[(bush04$state=="VT") & bush04$county=="gris"] <- "grandisle"
-bush04$county[(bush04$state=="VT") & bush04$county=="oran"] <- "orange"
-bush04$county[(bush04$state=="VA") & bush04$county=="manassas"] <- "manassascity"
-bush04$county[(bush04$state=="VA") & bush04$county=="norton"] <- "nortoncity"
-
-
-bush04_cnty <- left_join(bush04, fips_cnty)
-missing <- bush04_cnty[is.na(bush04_cnty$fips), 1:8] # election results still without fips due to county name inconsistencies
-bush04_cnty <- bush04_cnty[!is.na(bush04_cnty$fips), ] # keep only results that already have fips
-remaining <- anti_join(fips_cnty, bush04) %>% arrange(state) # fips without election results
-
-missing$county0 <- missing$county # move county names to a tempvar
-missing$county <- NA
-
-states <- unique(missing$state)
-states <- states[states != "AK"] # nothing to be done with Alaska election results--no breakdown in data
-for(i in 1:length(states)) {
-    t.rem <- remaining$county[remaining$state==states[i]] # fips without election results, one state at a time
-    missing$county[missing$state==states[i]] <- lapply(missing$county0[missing$state==states[i]], function (ii) agrep(ii, t.rem, value=T, max.distance=.2)) # find matches to county name by state
-}
-missing$county <- unlist(lapply(missing$county, function(ii) ii[1])) # use closest match to county name
-missing <- left_join(missing, fips_cnty) # now merge; some results still without fips in Maine, otherwise good
-missing$county0 <- NULL # drop tempvar
-
-bush04_cnty %<>% rbind(missing) %>% select(fips, perc_bush04)
 
 acs0509 <- read_csv("data/acs0509-counties.csv") # this throws warnings; they are irrelevant
 names(acs0509) <- tolower(names(acs0509))
@@ -158,7 +108,7 @@ acs0509 <- mutate(acs0509,
                   income_cnty = b19013_001e/10000,
                   black_cnty = b02001_003e/b02001_001e,
                   pop_cnty = b02001_001e/10000)
-cnty_data <- select(acs0509, fips:pop_cnty) %>% left_join(bush04_cnty)
+cnty_data <- select(acs0509, fips:pop_cnty) %>% left_join(elec04_cnty)
 write_csv(cnty_data, "data/cnty_data.csv")
 
 # DV Version A: 2005 & 2006, dichotomous item
