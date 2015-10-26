@@ -9,6 +9,7 @@ library(magrittr)
 library(maps)
 library(mi)
 library(mitools)
+library(interplot)
 
 interplot0 <- function(m, var1, var2, xlab=NULL, ylab=NULL, 
                        seed=324, sims=5000, steps=100, xmin=NA,
@@ -99,17 +100,17 @@ elec04_cnty <- read_csv("http://wiki.stat.ucla.edu/socr/uploads/5/5f/SOCR_Data_U
                         skip = 1) %>% select(fips = PCountyFIPS,
                                              perc_bush = Bush_pct)
 
-
 acs0509 <- read_csv("data/acs0509-counties.csv") # this throws warnings; they are irrelevant
 names(acs0509) <- tolower(names(acs0509))
 acs0509 <- mutate(acs0509,
                   fips = as.numeric(gsub("05000US", "", geoid)),
-                  gini_cnty = b19083_001e,
+                  gini_cnty = b19083_001e * 100,
                   income_cnty = b19013_001e/10000,
-                  black_cnty = b02001_003e/b02001_001e,
+                  black_cnty = b02001_003e/b02001_001e * 100,
                   pop_cnty = b02001_001e/10000)
 cnty_data <- select(acs0509, fips:pop_cnty) %>% left_join(elec04_cnty)
 write_csv(cnty_data, "data/cnty_data.csv")
+
 
 # DV Version A: 2005 & 2006, dichotomous item
 # Pew 2005 News Interest Index
@@ -216,49 +217,58 @@ p1x_w <- p1x %>% filter(white==1) %>% select(-white)
 #                      (1+income|fips),
 #                  data=p2006x_w,family=binomial(link="logit"))
 
-b1m1.r <- glmer(formula = rej_merit~gini_cnty+income+gini_cnty:income+
-                    income_cnty+black_cnty+perc_bush04+pop_cnty+
+b1m1_r <- glmer(formula = rej_merit~gini_cnty+income+gini_cnty:income+
+                    income_cnty+black_cnty+perc_bush+pop_cnty+
                     educ+age+male+unemp+union+partyid+ideo+attend+
                     (1+income|fips),
                 data=p1x_w, family=binomial(link="logit"))
 
-interplot0(b1m1.r, "gini_cnty", "income")
+interplot0(b1m1_r, "gini_cnty", "income", steps = 9)
 
 
 # Multiply impute missing values with mi
-p1x.w.info <- mi.info(p1x.w)
-p1x.w.info <- update(p1x.w.info, "include", list(fips=F, state=F))
-p1x.w.info <- update(p1x.w.info, "type", list(
-    income = "ordered-categorical",
-    educ = "ordered-categorical",
-    attend  = "ordered-categorical"))
-p1x.w.pre <- mi.preprocess(p1x.w, p1x.w.info)
+p1x_w_mi <- missing_data.frame(p1x_w)
+p1x_w_mi <- change(p1x_w_mi, "resp", "type", "irrelevant")
+p1x_w_mi <- change(p1x_w_mi, "fips", "type", "irrelevant")
+p1x_w_mi <- change(p1x_w_mi, "state", "type", "irrelevant")
+p1x_w_mi <- change(p1x_w_mi, "income", "type", "ordered-categorical")
+p1x_w_mi <- change(p1x_w_mi, "educ", "type", "ordered-categorical")
+p1x_w_mi <- change(p1x_w_mi, "attend", "type", "ordered-categorical")
 
-p1x.w.mi <- mi(p1x.w.pre, n.imp=10, n.iter=30, seed=324, max.minutes=60)
+ptm <- proc.time()
+p1x_w_im <- mi(p1x_w_mi, n.chains=8, n.iter=30, seed=324, max.minutes=60)
+proc.time() - ptm
 
-p1x.w.mi.list <- mi.completed(p1x.w.mi)
-p1x.w.mi.list2 <- imputationList(p1x.w.mi.list)
-b1m1.mi <- with(p1x.w.mi.list2, 
+Rhats(p1x_w_im)
+
+p1x_w_mi_list <- complete(p1x_w_im, m = 10)
+p1x_w_mi_list2 <- imputationList(p1x_w_mi_list)
+b1m1_mi <- with(p1x_w_mi_list2, 
                 glmer(formula = rej_merit~gini_cnty+income+gini_cnty:income+
-                          income_cnty+black_cnty+perc_bush04+pop_cnty+
+                          income_cnty+black_cnty+perc_bush+pop_cnty+
                           educ+age+male+unemp+union+partyid+ideo+attend+
                           (1+income|fips), family=binomial(link="logit")))
-b1m1.mi.fe <- MIextract(b1m1.mi, fun=fixef) # https://books.google.com/books?id=EbLrQrBGid8C&pg=PA384
-b1m1.mi.vars <- MIextract(b1m1.mi, fun=vcov)
-b1m1.mi.vars2 <- list()
-b1m1.mi.vars2 <- lapply(b1m1.mi.vars, as.matrix)
-b1m1.mi.res <- MIcombine(b1m1.mi.fe, b1m1.mi.vars2)
-summary(b1m1.mi.res)
+b1m1_mi_fe <- MIextract(b1m1_mi, fun=fixef) # https://books_google_com/books?id=EbLrQrBGid8C&pg=PA384
+b1m1_mi_vars <- MIextract(b1m1_mi, fun=vcov)
+b1m1_mi_vars2 <- list()
+b1m1_mi_vars2 <- lapply(b1m1_mi_vars, as.matrix)
+b1m1_mi_res <- MIcombine(b1m1_mi_fe, b1m1_mi_vars2)
+summary(b1m1_mi_res)
 
-b1m1.mi.plot <- interplot(b1m1.mi, "gini_cnty", "income", steps=9,
-                          labels = t$inc_labels,
+inc_labels <- c("<$10k", "$10-20k", "$20-30k", "$30-40k", "$40-50k",
+                "$50-75k", "$75-100k", "$100-150k", ">$150k")
+
+b1m1_mi_plot <- interplot:::interplot.gmlmmi(b1m1_mi, "gini_cnty", "income")
+
+, steps=9,
+                          labels = inc_labels,
                           xlab = "Family Income",
                           ylab = "County Income Inequality") 
-b1m1.mi.plot <- b1m1.mi.plot + 
+b1m1_mi_plot <- b1m1_mi_plot + 
     geom_hline(yintercept=0, colour="grey80", linetype="dashed")
-ggsave(file="b1m1_mi_plot.pdf", plot=b1m1.mi.plot, width=8, height=5.25)
+ggsave(file="b1m1_mi_plot_pdf", plot=b1m1_mi_plot, width=8, height=5.25)
 
-b1m1.mi.coef <- interplot(b1m1.mi, "gini_cnty", "income", steps=9, plot=F)
+b1m1_mi_coef <- interplot(b1m1_mi, "gini_cnty", "income", steps=9, plot=F)
 
 
 # Pew 2007 (to evaluate mixing DVs)
