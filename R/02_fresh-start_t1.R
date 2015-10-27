@@ -228,12 +228,12 @@ interplot0(b1m1_r, "gini_cnty", "income", steps = 9)
 
 # Multiply impute missing values with mi
 p1x_w_mi <- missing_data.frame(p1x_w)
-p1x_w_mi <- change(p1x_w_mi, "resp", "type", "irrelevant")
-p1x_w_mi <- change(p1x_w_mi, "fips", "type", "irrelevant")
-p1x_w_mi <- change(p1x_w_mi, "state", "type", "irrelevant")
-p1x_w_mi <- change(p1x_w_mi, "income", "type", "ordered-categorical")
-p1x_w_mi <- change(p1x_w_mi, "educ", "type", "ordered-categorical")
-p1x_w_mi <- change(p1x_w_mi, "attend", "type", "ordered-categorical")
+p1x_w_mi <- change_type(p1x_w_mi, y = "resp", to = "irrelevant")
+p1x_w_mi <- change_type(p1x_w_mi, y = "fips", to = "irrelevant")
+p1x_w_mi <- change_type(p1x_w_mi, y = "state", to = "irrelevant")
+p1x_w_mi <- change_type(p1x_w_mi, y = "income", to = "ordered-categorical")
+p1x_w_mi <- change_type(p1x_w_mi, y = "educ", to = "ordered-categorical")
+p1x_w_mi <- change_type(p1x_w_mi, y = "attend", to = "ordered-categorical")
 
 ptm <- proc.time()
 p1x_w_im <- mi(p1x_w_mi, n.chains=8, n.iter=30, seed=324, max.minutes=60)
