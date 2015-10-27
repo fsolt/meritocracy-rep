@@ -7,5 +7,4 @@ packrat/lib*/
 *.log
 *.out
 *.sty
-*.tex
 .DS_Store
