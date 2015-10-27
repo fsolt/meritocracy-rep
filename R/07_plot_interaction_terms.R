@@ -118,7 +118,7 @@ t1m1_plot <- interplot0(t1m1, "ginicnty", "income_i", sims=5000,
 						steps = 9, labels = t$inc_labels,
 						xlab = "Family Income",
 						ylab = "County Income Inequality")
-t1m1_plot <- t1m1.plot + geom_hline(yintercept=0, colour="grey80", linetype="dashed")
-ggsave(file="doc/figures/t1m1_plot.pdf", plot=t1m1.plot, width=8, height=5.25)
+t1m1_plot <- t1m1_plot + geom_hline(yintercept=0, colour="grey80", linetype="dashed")
+ggsave(file="doc/figures/07_plot_interaction_terms_t1m1.pdf", plot=t1m1_plot, width=8, height=5.25)
 
 
