@@ -1,0 +1,84 @@
+\documentclass[12pt]{article}
+
+\usepackage{graphicx}      % Enable graphics commands
+\usepackage{lscape}    	% Enable landscape with \begin{landscape} until \end{landscape}
+\usepackage[section]{placeins} % Keep tables and figures within their own sections
+\usepackage{natbib}			% Enable citation commands \citep{}, \citet{}, etc.
+\bibpunct{(}{)}{;}{a}{}{,}		% Formatting for in-text citations
+\usepackage{setspace}		% Enable double-spacing with \begin{spacing}{2} until \end{spacing}.
+\usepackage[utf8]{inputenc} 	% Enable utf8 characters, i.e., accents without coding--just type them in.
+\usepackage[english]{babel}	% English hyphenation and alphabetization.  Other languages available.
+\usepackage{dcolumn}        % For decimal-aligned stargazer output.
+\usepackage[colorlinks=true, urlcolor=blue, citecolor=black, linkcolor=black]{hyperref} % Include hyperlinks with the \url and \href commands.
+\setlength{\tabcolsep}{1pt}	% Make tables slightly narrower by reducing space between columns.
+
+\renewcommand\floatpagefraction{.9}	% These commands allow larger tables and graphics to fit
+\renewcommand\topfraction{.9}		% on a page when default settings would complain.
+\renewcommand\bottomfraction{.9}
+\renewcommand\textfraction{.1}
+\setcounter{totalnumber}{50}
+\setcounter{topnumber}{50}
+\setcounter{bottomnumber}{50}
+
+\newcommand{\R}{\textsf{R}~}        %This creates the command \R to typeset the name R correctly.
+
+%\usepackage[left=1in, right=1in]{geometry}	%Turn footnotes into endnotes (commented out).
+%\renewcommand{\footnotesize}{\normalsize}	
+%\usepackage{endnotes}
+%\renewcommand{\footnote}{\endnote}
+%\renewcommand{\section}{\subsection}
+%\usepackage{fullpage}
+
+\begin{document}
+
+
+\title{Protect Yourself from {\textit p}-Hacking:\\ 7 Things to Do to\\ Avoid Academic Malpractice}		
+\author{
+    Frederick Solt\\
+    \href{mailto:frederick-solt@uiowa.edu}{frederick-solt@uiowa.edu}
+    \and
+    Yue Hu\\
+    \href{mailto:yue-hu@uiowa.edu}{yue-hu@uiowa.edu}
+    \and
+	Kevan Hudson\\
+	\href{mailto:kevan-hudson@uiowa.edu}{kevan-hudson@uiowa.edu}
+	\and
+	Jungmin Song\\
+    \href{mailto:jungmin-song@uiowa.edu}{jungmin-song@uiowa.edu}
+	\and
+	Dong `Erico' Yu\\
+    \href{mailto:dong-yu@uiowa.edu}{dong-yu@uiowa.edu}
+}
+\date{\today}				
+\maketitle
+
+% \begin{abstract}
+%   
+% \end{abstract}
+\newpage
+
+% \input{00_introduction}					% Kevan
+% \input{01_ensure_reproducibility}		% Jungmin
+% \input{02_code_in_public}				% Hu
+% \input{03_examine_all_available_data}	% Kevan
+% \input{04_use_consistent_measures}		% Hu
+% \input{05_recode_with_care}				% Erico
+% \input{06_multiply_impute_missing_data}	% Erico
+\input{07_plot_interaction_terms}		% Jungmin
+
+% \input{10_introduction_example}
+% \input{11_ensure_reproducibility_example}
+% \input{12_code_in_public_example}
+% \input{13_examine_all_available_data_example}
+% \input{14_use_consistent_measures_example}
+% \input{15_recode_with_care_example}
+% \input{16_multiply_impute_missing_data_example}
+% \input{17_plot_interaction_terms_example}
+
+\newpage
+\pagebreak
+
+\bibliographystyle{bib/ajps}
+\bibliography{bib/avoid}
+
+\end{document}
