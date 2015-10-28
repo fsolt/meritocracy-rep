@@ -10,7 +10,7 @@ vpath %.R R
 doc/figures/07_plot_interaction_terms_t1m1.pdf: 07_plot_interaction_terms.R data/study_26584/Meritocracy\ Replication\ Data\ -\ Table\ 1.tab
 	Rscript $<
 
-doc/paper/avoid_master.pdf: avoid_master.tex\
+doc/paper/avoid.pdf: avoid.tex\
 	  00_introduction.tex\
 	  01_ensure_reproducibility.tex\
 	  02_code_in_public.tex\
@@ -21,7 +21,7 @@ doc/paper/avoid_master.pdf: avoid_master.tex\
 	  07_plot_interaction_terms.tex\
 	  07_plot_interaction_terms_t1m1.pdf
 	cd doc/paper;\
-	  pdflatex avoid_master.tex;\
-	  bibtex avoid_master.tex;\
-	  pdflatex avoid_master.tex;\
-	  pdflatex avoid_master.tex
+	  pdflatex avoid.tex;\
+	  bibtex avoid.tex;\
+	  pdflatex avoid.tex;\
+	  pdflatex avoid.tex
