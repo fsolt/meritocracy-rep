@@ -158,9 +158,9 @@ acs0509 <- read_csv("data/acs0509-counties.csv") # this throws warnings; they ar
 names(acs0509) <- tolower(names(acs0509))
 acs0509 <- mutate(acs0509,
                   fips = as.numeric(gsub("05000US", "", geoid)),
-                  gini_cnty = b19083_001e * 100,
+                  gini_cnty = b19083_001e,
                   income_cnty = b19013_001e/10000,
-                  black_cnty = b02001_003e/b02001_001e * 100,
+                  black_cnty = b02001_003e/b02001_001e,
                   pop_cnty = b02001_001e/10000)
 cnty_data <- select(acs0509, fips:pop_cnty) %>% left_join(elec04_cnty)
 write_csv(cnty_data, "data/cnty_data.csv")
