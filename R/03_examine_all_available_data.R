@@ -152,7 +152,7 @@ acs0509 <- mutate(acs0509,
 				  income_cnty = b19013_001e/10000,
 				  black_cnty = b02001_003e/b02001_001e,
 				  pop_cnty = b02001_001e/10000)
-cnty_data <- select(acs0509, fips:pop_cnty) %>% left_join(elec04_cnty)
+cnty_data <- select(acs0509, fips:pop_cnty) %>% left_join(bush04_cnty)
 write_csv(cnty_data, "data/cnty_data.csv")
 
 cnty_data <- read_csv("data/cnty_data.csv")
@@ -171,7 +171,7 @@ hhn06x_mi <- hhn_mi(hhn06x) # multiply impute missing data
 
 t2 <- with(hhn06x_mi, 
               glmer(formula = div_hhn~gini_cnty+
-                        income_cnty+black_cnty+perc_bush+pop_cnty+
+                        income_cnty+black_cnty+perc_bush04+pop_cnty+
                         income+educ+age+male+union+emp+partyid+ideo+attend+
                         (1|fips), family=binomial(link="logit")))
 t2_res <- format_mi_results(t2)
@@ -208,7 +208,7 @@ hhn_mi <- hhn_mi(hhn)
 
 t2_all <- with(hhn_mi, 
               glmer(formula = div_hhn~gini_cnty+
-                        income_cnty+black_cnty+perc_bush+pop_cnty+
+                        income_cnty+black_cnty+perc_bush04+pop_cnty+
                         income+educ+age+male+union+emp+partyid+ideo+attend+
                         (1|fips), family=binomial(link="logit")))
 t2_all_res <- format_mi_results(t2_all)
@@ -263,18 +263,13 @@ for (i in 1:length(yrs)) {
     ds <- lapply(hhn_mi$imputations, function(x) x[x$survey==yrs[i],, drop=F]) %>% imputationList()
     res <- with(ds, 
               glmer(formula = div_hhn~gini_cnty+
-                        income_cnty+black_cnty+perc_bush+pop_cnty+
+                        income_cnty+black_cnty+perc_bush04+pop_cnty+
                         income+educ+age+male+union+emp+partyid+ideo+attend+
                         (1|fips), family=binomial(link="logit")))
     tidy_res <- format_mi_results(res)
     tidy_res$model <- paste("Pew", yrs[i])
     if (i==1) t2_by_survey <- tidy_res else t2_by_survey <- rbind(t2_by_survey, tidy_res)
 }
-
-# t2_by_survey <- t2_res %>% 
-# 	mutate(model = "Pew 2006") %>% 
-# 	rbind(t2_by_survey) %>%  
-# 	arrange(model)
 
 t2_by_survey %<>% rbind(t2_res %>% mutate(model = "Pew 2006")) %>% 
 	arrange(model)
