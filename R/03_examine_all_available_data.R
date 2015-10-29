@@ -15,12 +15,37 @@ library(dotwhisker)
 ### Have vs. have-nots 
 # questions asked, with fips, in *every year* from 2005-2009, though NJL uses only 2006
 
+gen_partyid <- function(df) {
+	pid <- rep(NA, length(df$party))
+	pid[df$party==1 & df$partystr==1] <- 5
+	pid[df$party==1 & df$partystr==2] <- 4
+	pid[df$partyln==1] <- 4
+	pid[(df$party==3 | df$party==4) & df$partyln==9] <- 3
+	pid[df$partyln==2] <- 2
+	pid[df$party==2 & df$partystr==2] <- 2
+	pid[df$party==2 & df$partystr==1] <- 1
+	return(pid)
+}
+
+gen_partyid2 <- function(df) {
+	pid <- rep(NA, length(df$party))
+	pid[df$party==1 & df$partystr==1] <- 7
+	pid[df$party==1 & df$partystr==2] <- 6
+	pid[df$partyln==1] <- 5
+	pid[(df$party==3 | df$party==4) & df$partyln==9] <- 4
+	pid[df$partyln==2] <- 3
+	pid[df$party==2 & df$partystr==2] <- 2
+	pid[df$party==2 & df$partystr==1] <- 1
+	return(pid)
+}
+
 hhn_format <- function(df, cfips, dh, hn) {
 	# clean a Pew have/have-not survey dataset and merge it with county-level data
 	# df: data; cfips: var of county fips; dh: var of U.S. divided; hn: var of self-id as have-not
     surv <- str_replace(deparse(substitute(df)), "hhn", "20")
     all_vars <- c("income", "educ", "age", "sex", "racethn", "race", "hisp", 
-                  "labor", "ideo", "attend", "employ", "party", "partyln")
+                  "labor", "ideo", "attend", "employ",
+    			  "party", "partystr", "partyln")
     vars <- c(cfips, dh, hn, all_vars[all_vars %in% names(df)])
     df %<>% select(one_of(vars))
     names(df)[1:3] <- c("cfips", "dh", "hn")
@@ -33,9 +58,9 @@ hhn_format <- function(df, cfips, dh, hn) {
         educ = as.integer(ifelse(educ<=7, educ, NA)), # 1 to 7
         age = ifelse(age<99, age, NA),
         male = ifelse(sex==1, 1, 0),
-        ideo = as.integer(6 - ifelse(ideo<=5, ideo, NA)), # 1 to 5
-        partyid = ifelse(party==1, 5, ifelse(party==2, 1, ifelse(partyln==1, 4, ifelse(partyln==2, 2, NA))))
+        ideo = as.integer(6 - ifelse(ideo<=5, ideo, NA)) # 1 to 5
     )
+    df$partyid <- gen_partyid(df)
     if (names(df) %>% str_detect("racethn") %>% any()) {
         df %<>% mutate(white = ifelse(racethn==1, 1, 0))
     } else df %<>% mutate(white = ifelse(race==1 & hisp!=1, 1, 0))
@@ -52,7 +77,7 @@ hhn_format <- function(df, cfips, dh, hn) {
     df$survey <- surv
     
     vars2 <- c("fips", "state", "div_hhn", "have_not", "income", "educ", "age", "male", "white", 
-               "union", "emp", "partyid", "ideo", "attend", "survey")
+               "union", "emp", "partyid", "partyid2", "ideo", "attend", "survey")
     df %<>% select(one_of(vars2)) %>% left_join(cnty_data) %>% filter(white==1)
 } 
 
