@@ -4,11 +4,11 @@ library(ggplot2)
 library(dplyr)
 library(magrittr)
 library(stringr)
+library(lme4)
 library(mi)
 library(betareg)
 library(truncnorm)
 library(mitools)
-library(lme4)
 library(beepr)
 library(dotwhisker)
 
@@ -89,6 +89,72 @@ format_mi_results <- function(m) {
     df %>% filter(term!="(Intercept)")
 }
 
+## Replicate county-level data from sources
+fips_cnty <- read_csv("https://raw.githubusercontent.com/raypereda/fips-county-codes/master/lib/national.txt", 
+					  col_types="ccccc") 
+names(fips_cnty) <- tolower(gsub(" ", "_", names(fips_cnty)))
+fips_cnty$fips <- as.numeric(do.call(paste0, c(fips_cnty[, c(2,3)])))
+fips_cnty$county <- tolower(gsub(" County| Parish", "", fips_cnty$county_name))
+fips_cnty$county <- gsub(" ", "", fips_cnty$county)
+
+bush04 <- read_tsv("http://bactra.org/election/vote-counts-with-NE-aggregated")
+bush04$perc_bush04 <- with(bush04, Bush/(Bush+Kerry+Nader))
+names(bush04) <- tolower(names(bush04))
+bush04$county <- tolower(gsub(" County| Parish", "", bush04$county))
+bush04$county <- gsub("saint", "st.", bush04$county)
+bush04$county <- gsub(" ", "", bush04$county)
+bush04$county[(bush04$state=="LA"|bush04$state=="MS") & bush04$county=="jeffdavis"] <- "jeffersondavis"
+bush04$county[(bush04$state=="ME") & bush04$county=="linc"] <- "lincoln"
+bush04$county[(bush04$state=="ME") & bush04$county=="andr"] <- "androscoggin"
+bush04$county[(bush04$state=="ME") & bush04$county=="pen-s"] <- "penobscot"
+bush04$county[(bush04$state=="ME") & bush04$county=="som-s"] <- "somerset"
+bush04$county[(bush04$state=="ME") & bush04$county=="oxf-s"] <- "oxford"
+bush04$county[(bush04$state=="MA") & bush04$county=="hamd"] <- "hamden"
+bush04$county[(bush04$state=="MA") & bush04$county=="esse"] <- "essex"
+bush04$county[(bush04$state=="MA") & bush04$county=="hams"] <- "hampshire"
+bush04$county[(bush04$state=="NH") & bush04$county=="graf"] <- "grafton"
+bush04$county[(bush04$state=="NY") & bush04$county=="manhattan"] <- "newyork"
+bush04$county[(bush04$state=="NY") & bush04$county=="statenisland"] <- "richmond"
+bush04$county[(bush04$state=="NY") & bush04$county=="brooklyn"] <- "kings"
+bush04$county[(bush04$state=="VT") & bush04$county=="fran"] <- "franklin"
+bush04$county[(bush04$state=="VT") & bush04$county=="wins"] <- "windsor"
+bush04$county[(bush04$state=="VT") & bush04$county=="addi"] <- "addison"
+bush04$county[(bush04$state=="VT") & bush04$county=="gris"] <- "grandisle"
+bush04$county[(bush04$state=="VT") & bush04$county=="oran"] <- "orange"
+bush04$county[(bush04$state=="VA") & bush04$county=="manassas"] <- "manassascity"
+bush04$county[(bush04$state=="VA") & bush04$county=="norton"] <- "nortoncity"
+
+bush04_cnty <- left_join(bush04, fips_cnty)
+missing <- bush04_cnty[is.na(bush04_cnty$fips), 1:8] # election results still without fips due to county name inconsistencies
+bush04_cnty <- bush04_cnty[!is.na(bush04_cnty$fips), ] # keep only results that already have fips
+remaining <- anti_join(fips_cnty, bush04) %>% arrange(state) # fips without election results
+
+missing$county0 <- missing$county # move county names to a tempvar
+missing$county <- NA
+
+states <- unique(missing$state)
+states <- states[states != "AK"] # nothing to be done with Alaska election results--no breakdown in data
+for(i in 1:length(states)) {
+	t.rem <- remaining$county[remaining$state==states[i]] # fips without election results, one state at a time
+	missing$county[missing$state==states[i]] <- lapply(missing$county0[missing$state==states[i]], function (ii) agrep(ii, t.rem, value=T, max.distance=.2)) # find matches to county name by state
+}
+missing$county <- unlist(lapply(missing$county, function(ii) ii[1])) # use closest match to county name
+missing <- left_join(missing, fips_cnty) # now merge; some results still without fips in Maine, otherwise good
+missing$county0 <- NULL # drop tempvar
+
+bush04_cnty %<>% rbind(missing) %>% select(fips, perc_bush04)
+
+acs0509 <- read_csv("data/acs0509-counties.csv") # this throws warnings; they are irrelevant
+names(acs0509) <- tolower(names(acs0509))
+acs0509 <- mutate(acs0509,
+				  fips = as.numeric(gsub("05000US", "", geoid)),
+				  gini_cnty = b19083_001e,
+				  income_cnty = b19013_001e/10000,
+				  black_cnty = b02001_003e/b02001_001e,
+				  pop_cnty = b02001_001e/10000)
+cnty_data <- select(acs0509, fips:pop_cnty) %>% left_join(elec04_cnty)
+write_csv(cnty_data, "data/cnty_data.csv")
+
 cnty_data <- read_csv("data/cnty_data.csv")
 vars_list <- c("gini_cnty", "income_cnty", "black_cnty", "perc_bush04", "pop_cnty", "income",
               "educ", "age", "male", "union", "emp", "partyid", "ideo", "attend", "(Intercept)")
@@ -105,7 +171,7 @@ hhn06x_mi <- hhn_mi(hhn06x) # multiply impute missing data
 
 t2 <- with(hhn06x_mi, 
               glmer(formula = div_hhn~gini_cnty+
-                        income_cnty+black_cnty+perc_bush04+pop_cnty+
+                        income_cnty+black_cnty+perc_bush+pop_cnty+
                         income+educ+age+male+union+emp+partyid+ideo+attend+
                         (1|fips), family=binomial(link="logit")))
 t2_res <- format_mi_results(t2)
@@ -142,11 +208,10 @@ hhn_mi <- hhn_mi(hhn)
 
 t2_all <- with(hhn_mi, 
               glmer(formula = div_hhn~gini_cnty+
-                        income_cnty+black_cnty+perc_bush04+pop_cnty+
+                        income_cnty+black_cnty+perc_bush+pop_cnty+
                         income+educ+age+male+union+emp+partyid+ideo+attend+
                         (1|fips), family=binomial(link="logit")))
 t2_all_res <- format_mi_results(t2_all)
-summary(t2_all_res)
 
 level_brackets <- list(c("County-Level", "gini_cnty", "pop_cnty"),
                        c("Individual-Level", "income", "attend"))
@@ -192,14 +257,13 @@ dev.off()
 # beep()
 
 # Does any other single dataset yield same result as 2006? no
-yrs <- c(2005, 2006, 2007, 200801, 200810, 2009)
-t2_by_surv <- list()
+yrs <- c(2005, 2007, 200801, 200810, 2009)
 
 for (i in 1:length(yrs)) {
     ds <- lapply(hhn_mi$imputations, function(x) x[x$survey==yrs[i],, drop=F]) %>% imputationList()
     res <- with(ds, 
               glmer(formula = div_hhn~gini_cnty+
-                        income_cnty+black_cnty+perc_bush04+pop_cnty+
+                        income_cnty+black_cnty+perc_bush+pop_cnty+
                         income+educ+age+male+union+emp+partyid+ideo+attend+
                         (1|fips), family=binomial(link="logit")))
     tidy_res <- format_mi_results(res)
@@ -207,10 +271,18 @@ for (i in 1:length(yrs)) {
     if (i==1) t2_by_survey <- tidy_res else t2_by_survey <- rbind(t2_by_survey, tidy_res)
 }
 
-secret_weapon(t2_by_survey %>% arrange(desc(model)), "gini_cnty") +
+# t2_by_survey <- t2_res %>% 
+# 	mutate(model = "Pew 2006") %>% 
+# 	rbind(t2_by_survey) %>%  
+# 	arrange(model)
+
+t2_by_survey %<>% rbind(t2_res %>% mutate(model = "Pew 2006")) %>% 
+	arrange(model)
+
+secret_weapon(t2_by_survey, "gini_cnty") +
     theme_bw() + xlab("Coefficient Estimate, County Gini Index") + ylab("") + 
-    relabel_y_axis(rev(c("Oct 2005", "Sept 2006", "July 2007", 
-                                            "Jan 2008", "Oct 2008", "Apr 2009"))) +
+    relabel_y_axis(c("Oct 2005", "Sept 2006", "July 2007", 
+                                            "Jan 2008", "Oct 2008", "Apr 2009")) +
     geom_vline(xintercept = 0, colour = "grey60", linetype = 2) + 
-    theme(legend.position = "none") + coord_flip()
+    theme(legend.position = "none")
 ggsave("doc/figures/03_examine_all_available_data_t2_by_survey.pdf", width = 6, height = 3)
