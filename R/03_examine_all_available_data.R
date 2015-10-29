@@ -16,6 +16,8 @@ library(dotwhisker)
 # questions asked, with fips, in *every year* from 2005-2009, though NJL uses only 2006
 
 hhn_format <- function(df, cfips, dh, hn) {
+	# clean a Pew have/have-not survey dataset and merge it with county-level data
+	# df: data; cfips: var of county fips; dh: var of U.S. divided; hn: var of self-id as have-not
     surv <- str_replace(deparse(substitute(df)), "hhn", "20")
     all_vars <- c("income", "educ", "age", "sex", "racethn", "race", "hisp", 
                   "labor", "ideo", "attend", "employ", "party", "partyln")
@@ -55,6 +57,7 @@ hhn_format <- function(df, cfips, dh, hn) {
 } 
 
 hhn_mi <- function(df, seed=324) {
+	# multiply impute missing data in a cleaned and merged Pew dataset
     mdf <- missing_data.frame(as.data.frame(df))
     mdf <- change(mdf, y = c("fips", "state"), what = "type", to = "irrelevant")
     mdf <- change(mdf, y = c("income", "educ", "attend"), what = "type", to = "ordered-categorical")
@@ -70,6 +73,7 @@ hhn_mi <- function(df, seed=324) {
 }
 
 format_mi_results <- function(m) {
+	# format results of analysis of multiply imputed Pew dataset
     m_fe <- MIextract(m, fun=fixef) # see https://books.google.com/books?id=EbLrQrBGid8C&pg=PA384
     m_vars <- MIextract(m, fun=vcov)
     m_vars2 <- list()
@@ -161,7 +165,7 @@ p <- t2_res %>% by_2sd(hhn06x) %>%
                       labels = c("Pew 2006", "Pew 2005-2009"))
 g <- p %>% add_brackets(level_brackets)
 grid.draw(g)
-pdf("doc/figures/t2.pdf")  
+pdf("doc/figures/03_examine_all_available_data_t2.pdf")  
 grid.draw(g)
 dev.off()
 
@@ -209,4 +213,4 @@ secret_weapon(t2_by_survey %>% arrange(desc(model)), "gini_cnty") +
                                             "Jan 2008", "Oct 2008", "Apr 2009"))) +
     geom_vline(xintercept = 0, colour = "grey60", linetype = 2) + 
     theme(legend.position = "none") + coord_flip()
-ggsave("doc/figures/t2_by_survey.pdf", width = 6, height = 3)
+ggsave("doc/figures/03_examine_all_available_data_t2_by_survey.pdf", width = 6, height = 3)
