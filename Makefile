@@ -13,7 +13,7 @@ doc/figures/07_plot_interaction_terms_t1m1.pdf: 07_plot_interaction_terms.R data
 doc/paper/avoid.pdf: avoid.tex\
 	  00_introduction.tex\
 	  01_ensure_reproducibility.tex\
-	  02_code_in_public.tex\
+	  02_work_in_public.tex\
 	  03_examine_all_available_data.tex\
 	  04_use_consistent_measures.tex\
 	  05_recode_with_care.tex\
