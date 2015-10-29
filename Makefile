@@ -1,7 +1,7 @@
-all: doc/paper/avoid_master.pdf
+all: doc/paper/avoid.pdf
 
 clean :
-	-rm doc/paper/avoid_master.pdf
+	-rm doc/paper/avoid.pdf
 
 vpath %.tex doc/paper
 vpath %.pdf doc/figures
