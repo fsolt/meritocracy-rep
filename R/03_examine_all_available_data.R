@@ -297,7 +297,7 @@ for (i in 1:length(yrs)) {
 }
 
 t2_by_survey %<>% rbind(t2_res %>% mutate(model = "Pew 2006")) %>% 
-	arrange(model)
+	arrange(model) # use 2006 data mi'd separately for consistency w first plot
 
 secret_weapon(t2_by_survey, "gini_cnty") +
     theme_bw() + xlab("Coefficient Estimate, County Gini Index") + ylab("") + 
