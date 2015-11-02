@@ -35,6 +35,7 @@ doc/paper/avoid.pdf: avoid.tex\
 	  07_plot_interaction_terms.tex\
 	  07_plot_interaction_terms_t1m1.pdf
 	cd doc/paper;\
+	  cw Preview avoid.pdf;\
 	  latexmk -pdf avoid.tex;\
 	  open -a Preview avoid.pdf
  
