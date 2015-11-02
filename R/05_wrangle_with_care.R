@@ -28,7 +28,7 @@ bush_al <- left_join(bush, fips_cnty) %>%
 
 stargazer(bush_al, summary = FALSE, rownames = FALSE,
 		  title = "Mismatched Data on Bush Vote, from Replication Data",
-		  label = "T:bush_data",
+		  label = "T:bush_al",
 		  notes="\\parbox[t]{10cm}{\\emph{Notes}: \\citet{Newman2015a} replication data on
 		  the share of the vote won by Bush in the 2004 presidential election.  
 		  The first six counties, when listed alphabetically by state and 
