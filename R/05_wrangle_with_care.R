@@ -21,20 +21,26 @@ fips_cnty$county <- gsub(" County| Parish", "", fips_cnty$county_name)
 
 bush_al <- left_join(bush, fips_cnty) %>% 
 	filter(state == "AL" & !is.na(pbush_01)) %>% 
-	transmute("County" = county, 
+	transmute("County" = paste0(county, ", AL"),
 		   "Table 1 Data" = round(perc_bush04, digits = 2), 
 		   "Table 2 Data" = round(pbush_01, digits = 2)) %>% 
 	head()
-rownames(bush_al) <- NULL
 
 stargazer(bush_al, summary = FALSE, rownames = FALSE,
 		  title = "Mismatched Data on Bush Vote, from Replication Data",
 		  label = "T:bush_data",
+		  notes="\\parbox[t]{10cm}{\\emph{Notes}: \\citet{Newman2015a} replication data on
+		  the share of the vote won by Bush in the 2004 presidential election.  
+		  The first six counties, when listed alphabetically by state and 
+		  county, are shown; they reveal that the data employed in Table 2
+		  only occasionally matches that employed in Table 1, even when
+		  rounded to two digits.  Overall, these data match for fewer than
+		  10\\% of all counties.}",
 		  out = "doc/figures/05_wrangle_with_care_bush_al.tex")
 
 # Alternate table methods
 # Hmisc::latex(bush_al,
-# 			 file="doc/figures/05_handle_data_with_care_bush_al.tex",
+# 			 file="doc/figures/05_wrangle_with_care_bush_al.tex",
 # 			 cgroup=c("", "Data Used", "Data Used"),
 # 			 booktabs=TRUE, dcolumns=FALSE,
 # 			 rowname = NULL
