@@ -7,16 +7,18 @@ vpath %.tex doc/paper:doc/figures
 vpath %.pdf doc/figures
 vpath %.R R
 
-doc/figures/03_examine_all_available_data_t2.pdf: 03_examine_all_available_data.R 
+03_examine_all_available_data_t2.pdf: 03_examine_all_available_data.R 
 	Rscript --verbose $<
 
-doc/figures/03_examine_all_available_data_t2_by_survey.pdf: 03_examine_all_available_data.R 
+03_examine_all_available_data_t2_by_survey.pdf: 03_examine_all_available_data.R 
 	Rscript --verbose $<
 
 doc/figures/05_wrangle_with_care_bush_al.tex: 05_wrangle_with_care.R
-	Rscript $<
+	Rscript $<;\
+	sed -e s/ccc/lcc/ doc/figures/05_wrangle_with_care_bush_al.tex > 05.tmp &&\
+	mv 05.tmp doc/figures/05_wrangle_with_care_bush_al.tex
 
-doc/figures/07_plot_interaction_terms_t1m1.pdf: 07_plot_interaction_terms.R
+07_plot_interaction_terms_t1m1.pdf: 07_plot_interaction_terms.R
 	Rscript $<
 
 doc/paper/avoid.pdf: avoid.tex\
