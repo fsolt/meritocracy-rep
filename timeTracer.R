@@ -12,7 +12,7 @@ load("timeTrace_hu.Rdata") # don't run at the first time, since the dataset hasn
 trace_updated <- data.frame(start = NA, end = NA, spent = NA)
 trace_updated$start <- Sys.time() 
 
-
+save(trace, file = "./timeTrace_hu.Rdata")
 
 # run this at the ending point
 trace_updated$end <- Sys.time() 
