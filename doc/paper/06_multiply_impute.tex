@@ -4,16 +4,55 @@
 
 \section{Multiply Impute Missing Data}
 
-Outline\par
+Summary Paragraph\par
 
+In political science study, a common way to contaminate the data and undermine the validity is missing data growing non-response in Pew survey (Curtain, et.al, 2005;);\par
 
-missing data should be multiply imputed \citep[e.g.,][]{King2001}
-\citep Scott Long; Andrew Gelman;
+Reason: poor survey design(literature needed); private information (income;  ); sensitive question—influence of social desiablity (underreported abortion of black: Jagannathan, 2001; nonrespond and overreponse in female president question; Streb, 2008; nonresponse in religious: Hadway et.al, 1993); survey forms (Chang RDDv.s. Internet; 2009; Amazon-Turk, Berinsky, 2012)\par
 
+To deal with missing data: first identify missing mechanisms: (1) missing completely at random (MCAR): the probability of missingness is the same for all unit; that is, each survey respondent choose not to answer the question based on on coin flip (2)missing at random (MAR), and nonignorable or (King et. al, 2001): the probability whether the survey question is answered may depend on the other factor which are observable in the data: for example, an independents are more tend to decline to answer partisan identification question. (3)nonignorable (NI): because of the unobserved value of the missing response: high income people tend to conceal their real income, and other variables in the data cannot predict which respondent have high income.\par
 
+Strategy: to all: 1. listwise deletion or complete-case analysis; +  Available case study  (use the distribution of other observable variables)\par
 
+Disadvantages: (1) lead to biased estimates, especially when missing values differ systematically from the completed observed cases; (2) relatively, the standard error can be sensitive due to the original sample size and the deleted case size; (3) in ACS, may lead to omission of a variable hat is necessary to satisfying the assumptions necessary for desired casual inference.\par
+
+2. Non-response weighting: need to add literatures (for MAR and MCAR)\par
+
+3. Simple imputation: With high certainty: (1 )mean, (2)last value carried forward;\par
+
+With uncertainty: (3) using information from related observation (for example, in GSS, using reported occupation types and its mean annual salary to infer income; or in SIS, use reported working months to infer income)\par
+ 
+Disadvantages:  (1) mean, last value, or other singly imputed method bias, especially when the size of missing observation is relatively large; distorting the actual distribution (Gelman, 2006)\par
+
+(2) Inferred from other related observation: may not to impute all missing data\par
+
+4. Random Imputation with a single variable or multiple variables\par
+
+5. Multiple Imputation:\par
+
+Definition: imputing missing values for each missing case with different imputations to reflect uncertainty levels, and creating a complete data set. (King.et.al, 2001). For example, if assume the missing data of a specific variable is MAR, indicating other observable variables can infer useful information to predict the missing cases,  conditional on whichever imputation model adopted.\par
+
+(1)Multivariate regression:\par
+a. use continuous model to impute missing discrete response.Example: modeling the data as continuous (transfer discrete value into continuous), and imputing continuous values (Gelman and King, 1998) \par
+
+(2)
+
+Specific to Newman’s paper\par
 church attendance---all missing are simply assigned ``once or twice a month"
 
 income, a variable of interest, is missing for over 10\% of the sample, but values are mysteriously single-imputed (where did these values come from? they aren't meaningful--they fall between categories)
 
 ideology, partyid also single-imputed, it seems
+
+Church attendance: MAR
+
+income: MAR
+
+ideology: MAR
+
+Thus, mulitple imputation is possible and necessary
+
+missing data should be multiply imputed \citep[e.g.,][]{King2001}
+
+
+
