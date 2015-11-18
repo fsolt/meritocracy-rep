@@ -9,7 +9,7 @@ packages <- c("foreign", "readstata13","ggplot2", "tidyr","dplyr", "dotwhisker")
 ipak(packages)
 
 
-# Version a
+# Version a ####
 # “Most people who want to get ahead can make it if they’re willing to work hard” or “Hard work and determination are no guarantee of success for most people.” From this item, we constructed a dichotomous variable, labeled Meritocracy, which was coded 1 for respondents reporting agreement with the latter statement and 0 for those agreeing with the former statement.
 
 # Loading data
@@ -127,7 +127,7 @@ dt_va[["2000"]] <- data.frame(value = recode(dt00$Q18K, "c('Statement #1 -  stro
 dt_va[["2004"]] <- data.frame(value = recode(dt04$q11k, "c(1,2) = 0; c(3,4) = 1; else = NA"), weight = dt04$weight)
 
 dt_va[["2005"]] <- data.frame(value = as.numeric(dt05$q14k) %>% recode("c(1,2) = 0; c(3,4) = 1; else = NA"), weight = dt05$weight)
-  
+
 dt_va[["2006"]] <- data.frame(value = as.numeric(dt06$q8b) %>% recode("1 = 0; 2 = 1; else = NA"), weight = dt06$weight)
 
 dt_va[["2010"]] <- data.frame(value = as.numeric(dt10$q30d) %>% recode("1 = 0; 2 = 1; else = NA"), weight = dt10$weight)
@@ -145,9 +145,9 @@ dt_va[["2014_2"]] <- data.frame(value = as.numeric(dt14_2$q25k) %>% recode("1 = 
 
 # Mean data
 library(Hmisc)
-dt_mean <- data.frame(year = 1999, mean = with(dt_va[["1999"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["1999"]], wtd.var(value, weight, normwt = T)%>% sqrt()))
+dt_meana <- data.frame(year = 1999, mean = with(dt_va[["1999"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["1999"]], wtd.var(value, weight, normwt = T)%>% sqrt()))
 
-dt_mean <- rbind(dt_mean, 
+dt_meana <- rbind(dt_meana, 
                  c(year = 2000, mean = with(dt_va[["2000"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2000"]], wtd.var(value, weight, normwt = T)%>% sqrt())),
                  c(year = 2004, mean = with(dt_va[["2004"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2004"]], wtd.var(value, weight, normwt = T)%>% sqrt())),
                  c(year = 2005, mean = with(dt_va[["2005"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2005"]], wtd.var(value, weight, normwt = T)%>% sqrt())),
@@ -156,7 +156,38 @@ dt_mean <- rbind(dt_mean,
                  c(year = 2011, mean = with(dt_va[["2011"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2011"]], wtd.var(value, weight, normwt = T)%>% sqrt())),
                  c(year = 2012, mean = with(dt_va[["2012"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2012"]], wtd.var(value, weight, normwt = T)%>% sqrt())),
                  c(year = 2014, mean = with(dt_va[["2014"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2014"]], wtd.var(value, weight, normwt = T)%>% sqrt()))
-                 )
+)
 
+dt_meana$version <- "a"
+  
+# Version b ####
+dt8712 <- read.spss("./data/merit/version_b/1987-2012 Values Merge/1987-2012 Values Merge public.sav", to.data.frame = T) # q2.f q2.e
+# RESPONSE CATEGORIES:
+# 1	Completely agree
+# 2	Mostly agree
+# 3	Mostly disagree
+# 4	Completely disagree
+# 9	Don't know/Refused
+
+dt8712$vab <- ifelse(as.numeric(dt8712$q2f) < 3 & as.numeric(dt8712$q2e) < 3, 1, 0)
   
   
+library(Hmisc)
+dt_meanb <- group_by(dt8712, year) %>% summarise(mean = wtd.mean(vab, weight, normwt = T), sd = sqrt(wtd.var(vab, weight, normwt = T)), version = "b") 
+dt_meanb$mean[dt_meanb$mean == 0] <- NA
+dt_meanb$sd[dt_meanb$sd == 0] <- NA
+
+
+# Version c ####
+dt_vac <- data.frame(value = as.numeric(dt8712$q2f) %>% recode("c(1, 2) = 1; c(3, 4, 5) = 0"), year = dt8712$year, weight = dt8712$weight)
+
+library(Hmisc)
+dt_meanc <- group_by(dt_vac, year) %>% summarise(mean = wtd.mean(value, weight, normwt = T), sd = sqrt(wtd.var(value, weight, normwt = T)), version = "c")  
+dt_meanc$mean[is.nan(dt_meanc$mean)] <- NA
+dt_meanc$sd[is.nan(dt_meanc$sd)] <- NA
+
+# Combine ####
+dt_mean <- bind_rows(dt_meana, dt_meanb, dt_meanc)
+
+
+
