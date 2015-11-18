@@ -154,11 +154,32 @@ dt_meana <- rbind(dt_meana,
                  c(year = 2006, mean = with(dt_va[["2006"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2006"]], wtd.var(value, weight, normwt = T)%>% sqrt())),
                  c(year = 2010, mean = with(dt_va[["2010"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2010"]], wtd.var(value, weight, normwt = T)%>% sqrt())),
                  c(year = 2011, mean = with(dt_va[["2011"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2011"]], wtd.var(value, weight, normwt = T)%>% sqrt())),
+                 c(year = 2011.1, mean = with(dt_va[["2011_2"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2011"]], wtd.var(value, weight, normwt = T)%>% sqrt())),
                  c(year = 2012, mean = with(dt_va[["2012"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2012"]], wtd.var(value, weight, normwt = T)%>% sqrt())),
-                 c(year = 2014, mean = with(dt_va[["2014"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2014"]], wtd.var(value, weight, normwt = T)%>% sqrt()))
+                 c(year = 2014, mean = with(dt_va[["2014"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2014"]], wtd.var(value, weight, normwt = T)%>% sqrt())),
+                 c(year = 2014.1, mean = with(dt_va[["2014_2"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2014"]], wtd.var(value, weight, normwt = T)%>% sqrt()))
 )
 
 dt_meana$version <- "a"
+
+
+## No weight version:
+dt_meana2 <- data.frame(year = 1999, mean = with(dt_va[["1999"]], mean(value, na.rm = T)), sd = with(dt_va[["1999"]], var(value, na.rm = T)%>% sqrt()))
+
+dt_meana2 <- rbind(dt_meana2, 
+                  c(year = 2000, mean = with(dt_va[["2000"]], mean(value, na.rm = T)), sd = with(dt_va[["2000"]], var(value, na.rm = T)%>% sqrt())),
+                  c(year = 2004, mean = with(dt_va[["2004"]], mean(value, na.rm = T)), sd = with(dt_va[["2004"]], var(value, na.rm = T)%>% sqrt())),
+                  c(year = 2005, mean = with(dt_va[["2005"]], mean(value, na.rm = T)), sd = with(dt_va[["2005"]], var(value, na.rm = T)%>% sqrt())),
+                  c(year = 2006, mean = with(dt_va[["2006"]], mean(value, na.rm = T)), sd = with(dt_va[["2006"]], var(value, na.rm = T)%>% sqrt())),
+                  c(year = 2010, mean = with(dt_va[["2010"]], mean(value, na.rm = T)), sd = with(dt_va[["2010"]], var(value, na.rm = T)%>% sqrt())),
+                  c(year = 2011, mean = with(dt_va[["2011"]], mean(value, na.rm = T)), sd = with(dt_va[["2011"]], var(value, na.rm = T)%>% sqrt())),
+                  c(year = 2011.1, mean = with(dt_va[["2011_2"]], mean(value, na.rm = T)), sd = with(dt_va[["2011"]], var(value, na.rm = T)%>% sqrt())),
+                  c(year = 2012, mean = with(dt_va[["2012"]], mean(value, na.rm = T)), sd = with(dt_va[["2012"]], var(value, na.rm = T)%>% sqrt())),
+                  c(year = 2014, mean = with(dt_va[["2014"]], mean(value, na.rm = T)), sd = with(dt_va[["2014"]], var(value, na.rm = T)%>% sqrt())),
+                  c(year = 2014.1, mean = with(dt_va[["2014_2"]], mean(value, na.rm = T)), sd = with(dt_va[["2014"]], var(value, na.rm = T)%>% sqrt()))
+)
+
+dt_meana2$version <- "a"
   
 # Version b ####
 dt8712 <- read.spss("./data/merit/version_b/1987-2012 Values Merge/1987-2012 Values Merge public.sav", to.data.frame = T) # q2.f q2.e
@@ -172,22 +193,75 @@ dt8712 <- read.spss("./data/merit/version_b/1987-2012 Values Merge/1987-2012 Val
 dt8712$vab <- ifelse(as.numeric(dt8712$q2f) < 3 & as.numeric(dt8712$q2e) < 3, 1, 0)
   
   
-library(Hmisc)
 dt_meanb <- group_by(dt8712, year) %>% summarise(mean = wtd.mean(vab, weight, normwt = T), sd = sqrt(wtd.var(vab, weight, normwt = T)), version = "b") 
 dt_meanb$mean[dt_meanb$mean == 0] <- NA
 dt_meanb$sd[dt_meanb$sd == 0] <- NA
 
 
+#No Weight version
+dt_meanb2 <- group_by(dt8712, year) %>% summarise(mean = mean(vab, na.rm = T), sd = sqrt(var(vab, na.rm = T)), version = "b") 
+dt_meanb2$mean[dt_meanb2$mean == 0] <- NA
+dt_meanb2$sd[dt_meanb2$sd == 0] <- NA
+
+
 # Version c ####
 dt_vac <- data.frame(value = as.numeric(dt8712$q2f) %>% recode("c(1, 2) = 1; c(3, 4, 5) = 0"), year = dt8712$year, weight = dt8712$weight)
 
-library(Hmisc)
+
 dt_meanc <- group_by(dt_vac, year) %>% summarise(mean = wtd.mean(value, weight, normwt = T), sd = sqrt(wtd.var(value, weight, normwt = T)), version = "c")  
 dt_meanc$mean[is.nan(dt_meanc$mean)] <- NA
 dt_meanc$sd[is.nan(dt_meanc$sd)] <- NA
 
+#No weight version
+dt_meanc2 <- group_by(dt_vac, year) %>% summarise(mean = mean(value, na.rm = T), sd = sqrt(var(value, na.rm = T)), version = "c")  
+dt_meanc2$mean[is.nan(dt_meanc2$mean)] <- NA
+dt_meanc2$sd[is.nan(dt_meanc2$sd)] <- NA
+
+
 # Combine ####
-dt_mean <- bind_rows(dt_meana, dt_meanb, dt_meanc)
+diff <- setdiff(unique(dt_meanb$year), unique(dt_meana$year))
+dt_meana <- rbind(dt_meana, data.frame(year = diff, mean = NA, sd = NA, version = "a"))
+dt_meana <- dt_meana[order(dt_meana$year),]
+
+diff <- setdiff(unique(dt_meana$year), unique(dt_meanb$year))
+dt_meanb <- rbind(dt_meanb, data.frame(year = diff, mean = NA, sd = NA, version = "b"))
+dt_meanb <- dt_meanb[order(dt_meanb$year),]
+
+dt_meanc <- rbind(dt_meanc, data.frame(year = diff, mean = NA, sd = NA, version = "c"))
+dt_meanc <- dt_meanc[order(dt_meanc$year),]
+
+dt_mean <- bind_rows(dt_meana, dt_meanb, dt_meanc) %>% filter(year != 1993)
 
 
+# No weight version
+diff <- setdiff(unique(dt_meanb2$year), unique(dt_meana2$year))
+dt_meana2 <- rbind(dt_meana2, data.frame(year = diff, mean = NA, sd = NA, version = "a"))
+dt_meana2 <- dt_meana2[order(dt_meana2$year),]
+
+diff <- setdiff(unique(dt_meana2$year), unique(dt_meanb2$year))
+dt_meanb2 <- rbind(dt_meanb2, data.frame(year = diff, mean = NA, sd = NA, version = "b"))
+dt_meanb2 <- dt_meanb2[order(dt_meanb2$year),]
+
+dt_meanc2 <- rbind(dt_meanc2, data.frame(year = diff, mean = NA, sd = NA, version = "c"))
+dt_meanc2 <- dt_meanc2[order(dt_meanc2$year),]
+
+dt_mean2 <- bind_rows(dt_meana2, dt_meanb2, dt_meanc2) %>% filter(year != 1993)
+
+
+
+# plot ####
+library(dotwhisker)
+dt_mean$year <- as.character(dt_mean$year)
+names(dt_mean) <- c("term", "estimate", "std.error", "model")
+
+dwplot(dt_mean, dodge_size = 0.3)
+ggsave("./doc/figures/weightedMean.pdf")
+
+
+# no weight version
+dt_mean2$year <- as.character(dt_mean2$year)
+names(dt_mean2) <- c("term", "estimate", "std.error", "model")
+
+dwplot(dt_mean2, dodge_size = 0.3)
+ggsave("./doc/figures/Mean.pdf")
 
