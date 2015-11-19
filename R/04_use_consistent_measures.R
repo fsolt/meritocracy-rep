@@ -12,17 +12,17 @@ rc2 <- "1 = 0; 2 = 1; else = NA"
 rc4 <- "c(1,2) = 0; c(3,4) = 1; else = NA"
 
 ver_a <- ver_a %>% mutate(
-	var_name = c("Q18K", "q11k", "q14k", "q8b", "q5c", "q30d", "q44a",
-					"q17k", "q11", "q44a", "q25k"),
+	var_name = c("Q18K", "q11k", "q14k", "q8b", "q5c", "q30d", "q17k", 
+				 "q44a", "q11", "q44a", "q25k"),
 	weight = c("WEIGHT", rep("weight", 10)),
-	rc = c(rep(rc4, 3), rep(rc2, 4), rc4, rep(rc2, 3)),
+	rc = c(rep(rc4, 3), rep(rc2, 3), rc4, rep(rc2, 4)),
 	version = "Version A",
 	value = NA)
 
 get_mean <- function(x) {
 	df <- import(x$file_name)
 	df$rej_merit <- car::recode(as.numeric(df[[x$var_name]]), x$rc)
-	weighted.mean(df$rej_merit, df[[x$weight]], na.rm = TRUE)
+	weighted.mean(df$rej_merit, df[[x$weight]], na.rm = TRUE) *100 %>% round(1)
 }
 	
 for (i in 1:nrow(ver_a)) {
