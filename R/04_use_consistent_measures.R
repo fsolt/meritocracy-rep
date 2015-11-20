@@ -62,4 +62,16 @@ ver_c <- ver_c_file %>% group_by(year) %>%
 ver_all <- ver_a1 %>% select(year, version, value) %>% rbind(ver_a2, ver_b, ver_c)
 ver_all_wide <- ver_all %>% tidyr::spread(key = version, value = value)
 
-
+ggplot(ver_all, aes(x = year, y = value, color = version)) +
+	geom_point(na.rm = TRUE) +
+	geom_line() +
+	scale_alpha_discrete(range = c(0.25, .75)) +
+	scale_x_continuous(breaks=1999:2012, labels=1999:2012) +
+	theme_bw() +
+	theme(axis.text.x  = element_text(angle=80, vjust=0.6),
+		  legend.position = "none") +
+	ylab("") + xlab("") +
+	geom_text(aes(label = "Version C", x = 2000, y = 31, color = "C")) +
+	geom_text(aes(label = "Version A", x = 2003, y = 26, color = "A")) +
+	geom_text(aes(label = "Version B", x = 2010, y = 19, color = "B"))
+ggsave("./doc/figures/three_versions_dv.pdf")
