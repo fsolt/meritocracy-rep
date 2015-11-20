@@ -74,4 +74,4 @@ ggplot(ver_all, aes(x = year, y = value, color = version)) +
 	geom_text(aes(label = "Version C", x = 2000, y = 31, color = "C")) +
 	geom_text(aes(label = "Version A", x = 2003, y = 26, color = "A")) +
 	geom_text(aes(label = "Version B", x = 2010, y = 19, color = "B"))
-ggsave("./doc/figures/three_versions_dv.pdf")
+ggsave("./doc/figures/04_three_versions_dv.pdf")
