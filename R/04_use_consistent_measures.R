@@ -71,7 +71,7 @@ ggplot(ver_all, aes(x = year, y = value, color = version)) +
 	theme(axis.text.x  = element_text(angle=80, vjust=0.6),
 		  legend.position = "none") +
 	ylab("Percentage Rejecting Meritocracy") + xlab("") +
-	geom_text(aes(label = "Version C", x = 2000, y = 31, color = "C")) +
-	geom_text(aes(label = "Version A", x = 2003, y = 26, color = "A")) +
-	geom_text(aes(label = "Version B", x = 2010, y = 19, color = "B"))
-ggsave("./doc/figures/04_three_versions_dv.pdf")
+	geom_text(aes(label = "Measure 3", x = 2000, y = 31, color = "C")) +
+	geom_text(aes(label = "Measure 1", x = 2003, y = 26, color = "A")) +
+	geom_text(aes(label = "Measure 2", x = 2010, y = 19, color = "B"))
+ggsave("./doc/figures/04_three_measures_dv.pdf")
