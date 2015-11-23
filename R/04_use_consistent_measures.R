@@ -1,6 +1,7 @@
 library(rio)
 library(stringr)
 library(dplyr)
+library(ggplot2)
 
 data_path <- "data/pew/merit/"
 ver_a_files <- list.files(data_path, recursive = TRUE) %>% 
@@ -72,8 +73,8 @@ ver_all2 <- left_join(ver_all, njl)
 ver_all2$njl[is.na(ver_all2$njl)] <- "D"
 
 ggplot(ver_all2, aes(x = year, y = value, color = version)) +
-	scale_color_manual(values = c(A = "red", B = "green", C = "blue")) +
-	scale_fill_manual(values = c(A = "red", B = "green", C = "blue", D = "white")) +
+ 	scale_color_manual(values = c(A = "red", B = "darkgreen", C = "navy")) +
+ 	scale_fill_manual(values = c(A = "red", B = "darkgreen", C = "navy", D = "white")) +
 	geom_line() +
 	geom_point(aes(fill = njl), shape = 21, na.rm = TRUE, size = 3) +
 	scale_x_continuous(breaks=1999:2012, labels=1999:2012) +
