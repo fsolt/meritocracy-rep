@@ -60,12 +60,22 @@ ver_c <- ver_c_file %>% group_by(year) %>%
 	filter(year>=1999)
 
 ver_all <- ver_a1 %>% select(year, version, value) %>% rbind(ver_a2, ver_b, ver_c)
-ver_all_wide <- ver_all %>% tidyr::spread(key = version, value = value)
+ver_all_wide <- ver_all %>% tidyr::spread(key = version, value = value) # just for reference
 
-ggplot(ver_all, aes(x = year, y = value, color = version)) +
-	geom_point(na.rm = TRUE) +
+njl <- data.frame(
+	year = c(2005:2007, 2009), 
+	version = c("A", "A", "B", "C"), 
+	njl = c("A", "A", "B", "C"),
+	stringsAsFactors = FALSE)
+
+ver_all2 <- left_join(ver_all, njl)
+ver_all2$njl[is.na(ver_all2$njl)] <- "D"
+
+ggplot(ver_all2, aes(x = year, y = value, color = version)) +
+	scale_color_manual(values = c(A = "red", B = "green", C = "blue")) +
+	scale_fill_manual(values = c(A = "red", B = "green", C = "blue", D = "white")) +
 	geom_line() +
-	scale_alpha_discrete(range = c(0.25, .75)) +
+	geom_point(aes(fill = njl), shape = 21, na.rm = TRUE, size = 3) +
 	scale_x_continuous(breaks=1999:2012, labels=1999:2012) +
 	theme_bw() +
 	theme(axis.text.x  = element_text(angle=80, vjust=0.6),
