@@ -5,93 +5,8 @@ ipak <- function(pkg){
   sapply(pkg, require, character.only = TRUE)
 }
 
-packages <- c("rio","stringr", "ggplot2", "tidyr","dplyr", "dotwhisker")
+packages <- c("foreign","stringr", "ggplot2", "tidyr","dplyr", "dotwhisker")
 ipak(packages)
-
-
-# Data loading
-ver_a_files <- list.files("./data/merit", recursive = TRUE) %>% 
-  str_subset("version_a.*sav|dta")
-ver_a <- data.frame(
-  file_name = paste0(data_path, ver_a_files[c(1:2, 5:8, 12:14, 17)]),
-  year = c(2011, 2012, 2007, 2005, 2011, 2006,
-           2010, 2000, 1999, 2004), stringsAsFactors = FALSE) %>% arrange(year)
-rc2 <- "1 = 0; 2 = 1; else = NA"
-rc4 <- "c(1,2) = 0; c(3,4) = 1; else = NA"
-
-ver_a <- ver_a %>% mutate(
-  var_name = c("q18j", "Q18K", "q11k", "q14k", "q8b", "q5c", "q30d", "q17k", 
-               "q44a", "q11"),
-  weight = c("weight", "WEIGHT", rep("weight", 8)),
-  rc = c(rep(rc4, 4), rep(rc2, 3), rc4, rep(rc2, 2)),
-  version = "A",
-  value = NA)
-
-ver_a1 <- ver_a %>% filter(year!=2011)
-ver_a2 <- ver_a %>% filter(year==2011)
-
-setup <- function(x) {
-  df <- import(x$file_name)
-  df$rej_merit <- car::recode(as.numeric(df[[x$var_name]]), x$rc)
-  df$weight <- df[[x$weight]]
-  df <- df %>% select(rej_merit, weight) %>% mutate(year = x$year)
-  return(df)
-}
-
-for (i in 1:nrow(ver_a1)) {
-  df <- setup(ver_a1[i, ])
-  ver_a1$value[i] <- weighted.mean(df$rej_merit, df$weight, na.rm = TRUE) *100
-}
-
-df <- rbind(setup(ver_a2[1, ]), setup(ver_a2[2, ]))
-ver_a2 <- data.frame(
-  year = 2011, 
-  version = "A", 
-  value = weighted.mean(df$rej_merit, df$weight, na.rm = TRUE) *100,
-  stringsAsFactors = FALSE)
-
-ver_b_file <- import(paste0(data_path, "version_b/1987-2012 Values Merge/1987-2012 Values Merge public.sav")) 
-ver_b_file$rej_merit <- with(ver_b_file, ifelse(q2f < 3 & q2e < 3, 1, 0))
-ver_b_file$rej_merit[ver_b_file$q2f == 9 | ver_b_file$q2e == 9] <- NA
-ver_b <- ver_b_file %>% group_by(year) %>% 
-  summarize(version = "B",
-            value = weighted.mean(rej_merit, weight, na.rm = TRUE) * 100) %>% 
-  filter(year>=1999)
-
-ver_c_file <- ver_b_file 
-ver_c_file$rej_merit <- with(ver_c_file, ifelse(q2f < 3, 1, 0))
-ver_c_file$rej_merit[ver_c_file$q2f == 9] <- NA
-ver_c <- ver_c_file %>% group_by(year) %>% 
-  summarize(version = "C",
-            value = weighted.mean(rej_merit, weight, na.rm = TRUE) * 100) %>% 
-  filter(year>=1999)
-
-ver_all <- ver_a1 %>% select(year, version, value) %>% rbind(ver_a2, ver_b, ver_c)
-ver_all_wide <- ver_all %>% tidyr::spread(key = version, value = value) # just for reference
-
-njl <- data.frame(
-  year = c(2005:2007, 2009), 
-  version = c("A", "A", "B", "C"), 
-  njl = c("A", "A", "B", "C"),
-  stringsAsFactors = FALSE)
-
-ver_all2 <- left_join(ver_all, njl)
-ver_all2$njl[is.na(ver_all2$njl)] <- "D"
-
-ggplot(ver_all2, aes(x = year, y = value, color = version)) +
-  scale_color_manual(values = c(A = "red", B = "darkgreen", C = "navy")) +
-  scale_fill_manual(values = c(A = "red", B = "darkgreen", C = "navy", D = "white")) +
-  geom_line() +
-  geom_point(aes(fill = njl), shape = 21, na.rm = TRUE, size = 3) +
-  scale_x_continuous(breaks=1999:2012, labels=1999:2012) +
-  theme_bw() +
-  theme(axis.text.x  = element_text(angle=80, vjust=0.6),
-        legend.position = "none") +
-  ylab("Percentage Rejecting Meritocracy") + xlab("") +
-  geom_text(aes(label = "Measure 3", x = 2000, y = 31, color = "C")) +
-  geom_text(aes(label = "Measure 1", x = 2003, y = 26, color = "A")) +
-  geom_text(aes(label = "Measure 2", x = 2010, y = 19, color = "B"))
-ggsave("./doc/figures/04_three_measures_dv.pdf")
 
 
 
@@ -206,7 +121,7 @@ dt14_2 <- read.spss("./data/merit/version_a/2014 Polarization/Polarization 2014 
 library(car)
 
 dt_va <- list()
-dt_va[["1999"]] <- data.frame(value = recode(dt99$q18k, "c(1,2) = 0; c(3,4) = 1; else = NA"), weight = dt99$weight)
+dt_va[["1999"]] <- data.frame(value = recode(dt99$q18k, "c(1,2) = 1; c(3,4) = 0; else = NA"), weight = dt99$weight) # 1999 survey may have the wrong coding, 3, 4 = strongly agree
 
 dt_va[["2000"]] <- data.frame(value = recode(dt00$Q18K, "c('Statement #1 -  strongly','Statement #1 - not strongly') = 0; c('Statement #2 -  strongly', 'Statement #2 -  not strongly') = 1; else = NA") %>% as.numeric() - 1, weight = dt00$WEIGHT)
 
@@ -231,42 +146,25 @@ dt_va[["2014_2"]] <- data.frame(value = as.numeric(dt14_2$q25k) %>% recode("1 = 
 
 # Mean data
 library(Hmisc)
-dt_meana <- data.frame(year = 1999, mean = with(dt_va[["1999"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["1999"]], wtd.var(value, weight, normwt = T)%>% sqrt()))
+dt_meana <- data.frame(year = 1999, mean = with(dt_va[["1999"]], wtd.mean(value, weight, normwt = T)), se = with(dt_va[["1999"]], wtd.var(value, weight, normwt = T)/nrow(dt_va[["1999"]]) %>% sqrt()))
 
 dt_meana <- rbind(dt_meana, 
-                 c(year = 2000, mean = with(dt_va[["2000"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2000"]], wtd.var(value, weight, normwt = T)%>% sqrt())),
-                 c(year = 2004, mean = with(dt_va[["2004"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2004"]], wtd.var(value, weight, normwt = T)%>% sqrt())),
-                 c(year = 2005, mean = with(dt_va[["2005"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2005"]], wtd.var(value, weight, normwt = T)%>% sqrt())),
-                 c(year = 2006, mean = with(dt_va[["2006"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2006"]], wtd.var(value, weight, normwt = T)%>% sqrt())),
-                 c(year = 2010, mean = with(dt_va[["2010"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2010"]], wtd.var(value, weight, normwt = T)%>% sqrt())),
-                 c(year = 2011, mean = with(dt_va[["2011"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2011"]], wtd.var(value, weight, normwt = T)%>% sqrt())),
-                 c(year = 2011.1, mean = with(dt_va[["2011_2"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2011"]], wtd.var(value, weight, normwt = T)%>% sqrt())),
-                 c(year = 2012, mean = with(dt_va[["2012"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2012"]], wtd.var(value, weight, normwt = T)%>% sqrt())),
-                 c(year = 2014, mean = with(dt_va[["2014"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2014"]], wtd.var(value, weight, normwt = T)%>% sqrt())),
-                 c(year = 2014.1, mean = with(dt_va[["2014_2"]], wtd.mean(value, weight, normwt = T)), sd = with(dt_va[["2014"]], wtd.var(value, weight, normwt = T)%>% sqrt()))
+                 c(year = 2000, mean = with(dt_va[["2000"]], wtd.mean(value, weight, normwt = T)), se = with(dt_va[["2000"]], wtd.var(value, weight, normwt = T) / nrow(dt_va[["2000"]]) %>% sqrt())),
+                 c(year = 2004, mean = with(dt_va[["2004"]], wtd.mean(value, weight, normwt = T)), se = with(dt_va[["2004"]], wtd.var(value, weight, normwt = T) / nrow(dt_va[["2004"]]) %>% sqrt())),
+                 c(year = 2005, mean = with(dt_va[["2005"]], wtd.mean(value, weight, normwt = T)), se = with(dt_va[["2005"]], wtd.var(value, weight, normwt = T) / nrow(dt_va[["2005"]]) %>% sqrt())),
+                 c(year = 2006, mean = with(dt_va[["2006"]], wtd.mean(value, weight, normwt = T)), se = with(dt_va[["2006"]], wtd.var(value, weight, normwt = T) / nrow(dt_va[["2006"]]) %>% sqrt())),
+                 c(year = 2010, mean = with(dt_va[["2010"]], wtd.mean(value, weight, normwt = T)), se = with(dt_va[["2010"]], wtd.var(value, weight, normwt = T) / nrow(dt_va[["2010"]]) %>% sqrt())),
+                 c(year = 2011, mean = with(dt_va[["2011"]], wtd.mean(value, weight, normwt = T)), se = with(dt_va[["2011"]], wtd.var(value, weight, normwt = T) / nrow(dt_va[["2011"]]) %>% sqrt())),
+                 c(year = 2011.1, mean = with(dt_va[["2011_2"]], wtd.mean(value, weight, normwt = T)), se = with(dt_va[["2011"]], wtd.var(value, weight, normwt = T) / nrow(dt_va[["2011_2"]]) %>% sqrt())),
+                 c(year = 2012, mean = with(dt_va[["2012"]], wtd.mean(value, weight, normwt = T)), se = with(dt_va[["2012"]], wtd.var(value, weight, normwt = T) / nrow(dt_va[["2012"]]) %>% sqrt())),
+                 c(year = 2014, mean = with(dt_va[["2014"]], wtd.mean(value, weight, normwt = T)), se = with(dt_va[["2014"]], wtd.var(value, weight, normwt = T) / nrow(dt_va[["2014"]]) %>% sqrt())),
+                 c(year = 2014.1, mean = with(dt_va[["2014_2"]], wtd.mean(value, weight, normwt = T)), se = with(dt_va[["2014"]], wtd.var(value, weight, normwt = T) / nrow(dt_va[["2014_2"]]) %>% sqrt()))
 )
 
 dt_meana$version <- "a"
 
 
-## No weight version:
-dt_meana2 <- data.frame(year = 1999, mean = with(dt_va[["1999"]], mean(value, na.rm = T)), sd = with(dt_va[["1999"]], var(value, na.rm = T)%>% sqrt()))
 
-dt_meana2 <- rbind(dt_meana2, 
-                  c(year = 2000, mean = with(dt_va[["2000"]], mean(value, na.rm = T)), sd = with(dt_va[["2000"]], var(value, na.rm = T)%>% sqrt())),
-                  c(year = 2004, mean = with(dt_va[["2004"]], mean(value, na.rm = T)), sd = with(dt_va[["2004"]], var(value, na.rm = T)%>% sqrt())),
-                  c(year = 2005, mean = with(dt_va[["2005"]], mean(value, na.rm = T)), sd = with(dt_va[["2005"]], var(value, na.rm = T)%>% sqrt())),
-                  c(year = 2006, mean = with(dt_va[["2006"]], mean(value, na.rm = T)), sd = with(dt_va[["2006"]], var(value, na.rm = T)%>% sqrt())),
-                  c(year = 2010, mean = with(dt_va[["2010"]], mean(value, na.rm = T)), sd = with(dt_va[["2010"]], var(value, na.rm = T)%>% sqrt())),
-                  c(year = 2011, mean = with(dt_va[["2011"]], mean(value, na.rm = T)), sd = with(dt_va[["2011"]], var(value, na.rm = T)%>% sqrt())),
-                  c(year = 2011.1, mean = with(dt_va[["2011_2"]], mean(value, na.rm = T)), sd = with(dt_va[["2011"]], var(value, na.rm = T)%>% sqrt())),
-                  c(year = 2012, mean = with(dt_va[["2012"]], mean(value, na.rm = T)), sd = with(dt_va[["2012"]], var(value, na.rm = T)%>% sqrt())),
-                  c(year = 2014, mean = with(dt_va[["2014"]], mean(value, na.rm = T)), sd = with(dt_va[["2014"]], var(value, na.rm = T)%>% sqrt())),
-                  c(year = 2014.1, mean = with(dt_va[["2014_2"]], mean(value, na.rm = T)), sd = with(dt_va[["2014"]], var(value, na.rm = T)%>% sqrt()))
-)
-
-dt_meana2$version <- "a"
-  
 # Version b ####
 dt8712 <- read.spss("./data/merit/version_b/1987-2012 Values Merge/1987-2012 Values Merge public.sav", to.data.frame = T) # q2.f q2.e
 # RESPONSE CATEGORIES:
@@ -282,12 +180,8 @@ dt8712$vab <- ifelse(as.numeric(dt8712$q2f) < 3 & as.numeric(dt8712$q2e) < 3, 1,
 dt_meanb <- group_by(dt8712, year) %>% summarise(mean = wtd.mean(vab, weight, normwt = T), sd = sqrt(wtd.var(vab, weight, normwt = T)), version = "b") 
 dt_meanb$mean[dt_meanb$mean == 0] <- NA
 dt_meanb$sd[dt_meanb$sd == 0] <- NA
+dt_meanb <- left_join(dt_meanb, count(dt8712, year)) %>% mutate(se = sd/sqrt(n), sd = NULL, n = NULL)
 
-
-#No Weight version
-dt_meanb2 <- group_by(dt8712, year) %>% summarise(mean = mean(vab, na.rm = T), sd = sqrt(var(vab, na.rm = T)), version = "b") 
-dt_meanb2$mean[dt_meanb2$mean == 0] <- NA
-dt_meanb2$sd[dt_meanb2$sd == 0] <- NA
 
 
 # Version c ####
@@ -297,66 +191,83 @@ dt_vac <- data.frame(value = as.numeric(dt8712$q2f) %>% recode("c(1, 2) = 1; c(3
 dt_meanc <- group_by(dt_vac, year) %>% summarise(mean = wtd.mean(value, weight, normwt = T), sd = sqrt(wtd.var(value, weight, normwt = T)), version = "c")  
 dt_meanc$mean[is.nan(dt_meanc$mean)] <- NA
 dt_meanc$sd[is.nan(dt_meanc$sd)] <- NA
-
-#No weight version
-dt_meanc2 <- group_by(dt_vac, year) %>% summarise(mean = mean(value, na.rm = T), sd = sqrt(var(value, na.rm = T)), version = "c")  
-dt_meanc2$mean[is.nan(dt_meanc2$mean)] <- NA
-dt_meanc2$sd[is.nan(dt_meanc2$sd)] <- NA
-
-
-# Combined mean (no weight)
-`%wo%` <- Negate(`%in%`)
-share <- dt_meana2$year[dt_meana2$year %wo% setdiff(unique(dt_meana2$year), unique(dt_meanb2$year))]
-
+dt_meanc <- left_join(dt_meanc, count(dt8712, year)) %>% mutate(se = sd/sqrt(n), sd = NULL, n = NULL)
 
 
 
 # Combine ####
 diff <- setdiff(unique(dt_meanb$year), unique(dt_meana$year))
-dt_meana <- rbind(dt_meana, data.frame(year = diff, mean = NA, sd = NA, version = "a"))
+dt_meana <- rbind(dt_meana, data.frame(year = diff, mean = NA, se = NA, version = "a"))
 dt_meana <- dt_meana[order(dt_meana$year),]
 
 diff <- setdiff(unique(dt_meana$year), unique(dt_meanb$year))
-dt_meanb <- rbind(dt_meanb, data.frame(year = diff, mean = NA, sd = NA, version = "b"))
+dt_meanb <- rbind(dt_meanb, data.frame(year = diff, mean = NA, se = NA, version = "b"))
 dt_meanb <- dt_meanb[order(dt_meanb$year),]
 
-dt_meanc <- rbind(dt_meanc, data.frame(year = diff, mean = NA, sd = NA, version = "c"))
+dt_meanc <- rbind(dt_meanc, data.frame(year = diff, mean = NA, se = NA, version = "c"))
 dt_meanc <- dt_meanc[order(dt_meanc$year),]
 
 dt_mean <- bind_rows(dt_meana, dt_meanb, dt_meanc) %>% filter(year != 1993)
 
+njl <- data.frame(
+  year = c(2005:2007, 2009),  
+  njl = c("a", "a", "b", "c"),
+  stringsAsFactors = FALSE)
 
-# No weight version
-diff <- setdiff(unique(dt_meanb2$year), unique(dt_meana2$year))
-dt_meana2 <- rbind(dt_meana2, data.frame(year = diff, mean = NA, sd = NA, version = "a"))
-dt_meana2 <- dt_meana2[order(dt_meana2$year),]
+dt_mean <- left_join(dt_mean, njl)
+dt_mean$njl[is.na(dt_mean$njl)] <- "d"
 
-diff <- setdiff(unique(dt_meana2$year), unique(dt_meanb2$year))
-dt_meanb2 <- rbind(dt_meanb2, data.frame(year = diff, mean = NA, sd = NA, version = "b"))
-dt_meanb2 <- dt_meanb2[order(dt_meanb2$year),]
 
-dt_meanc2 <- rbind(dt_meanc2, data.frame(year = diff, mean = NA, sd = NA, version = "c"))
-dt_meanc2 <- dt_meanc2[order(dt_meanc2$year),]
-
-dt_mean2 <- bind_rows(dt_meana2, dt_meanb2, dt_meanc2) %>% filter(year != 1993)
-
+# ggplot(ver_all2, aes(x = year, y = value, color = version)) +
+#   scale_color_manual(values = c(A = "red", B = "darkgreen", C = "navy")) +
+#   scale_fill_manual(values = c(A = "red", B = "darkgreen", C = "navy", D = "white")) +
+#   geom_line() +
+#   geom_point(aes(fill = njl), shape = 21, na.rm = TRUE, size = 3) +
+#   scale_x_continuous(breaks=1999:2012, labels=1999:2012) +
+#   theme_bw() +
+#   theme(axis.text.x  = element_text(angle=80, vjust=0.6),
+#         legend.position = "none") +
+#   ylab("Percentage Rejecting Meritocracy") + xlab("") +
+#   geom_text(aes(label = "Measure 3", x = 2000, y = 31, color = "C")) +
+#   geom_text(aes(label = "Measure 1", x = 2003, y = 26, color = "A")) +
+#   geom_text(aes(label = "Measure 2", x = 2010, y = 19, color = "B"))
+# ggsave("./doc/figures/04_three_measures_dv.pdf")
+# 
+# 
+# dt_meanShare <- filter(dt_mean, year >= 1999 & year <= 2012 & year %% 1 == 0)
 
 
 
 
 # plot ####
+ggplot(dt_meanShare, aes(x = year, y = mean, color = version)) +
+  scale_color_manual(values = c(a = "red", b = "darkgreen", c = "navy")) +
+  scale_fill_manual(values = c(a = "red", b = "darkgreen", c = "navy", d = "white")) +
+  geom_line() +
+  geom_point(aes(fill = njl), shape = 21, na.rm = TRUE, size = 3) +
+  scale_x_continuous(breaks=1999:2012, labels=1999:2012) +
+  theme_bw() +
+  theme(axis.text.x  = element_text(angle=80, vjust=0.6),
+        legend.position = "none") +
+  ylab("Percentage Rejecting Meritocracy") + xlab("") 
+# + geom_text(aes(label = "Measure 3", x = 2000, y = 31, color = "c")) +
+# geom_text(aes(label = "Measure 1", x = 2003, y = 26, color = "a")) +
+# geom_text(aes(label = "Measure 2", x = 2010, y = 19, color = "b"))
+
+
 library(dotwhisker)
 dt_mean$year <- as.character(dt_mean$year)
-names(dt_mean) <- c("term", "estimate", "std.error", "model")
-
-dwplot(dt_mean, dodge_size = 0.3)
-ggsave("./doc/figures/weightedMean.pdf")
+names(dt_mean) <- c("term", "estimate", "std.error", "model", "njl")
+dt_mean <- mutate(dt_mean, estimate = estimate * 100, std.error = std.error * 100)
 
 
-# no weight version
-dt_mean2$year <- as.character(dt_mean2$year)
-names(dt_mean2) <- c("term", "estimate", "std.error", "model")
-
-dwplot(dt_mean2, dodge_size = 0.3)
-ggsave("./doc/figures/Mean.pdf")
+dwplot(dt_mean, dodge_size = 0.3) +
+  scale_color_manual(values = c(a = "red", b = "darkgreen", c = "navy")) +
+  scale_fill_manual(values = c(a = "red", b = "darkgreen", c = "navy", d = "white")) +
+  geom_point(aes(fill = njl), shape = 21, na.rm = TRUE, size = 3) +
+  theme_bw() +
+  theme(axis.text.x  = element_text(angle=80, vjust=0.6), legend.position = "none") + 
+  xlab("Percentage Rejecting Meritocracy") +　
+  coord_flip() 
+ggsave("./doc/figures/04_dotwhisker_draft.pdf")
 
