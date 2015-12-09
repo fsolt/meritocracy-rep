@@ -15,7 +15,7 @@ rc4 <- "c(1,2) = 0; c(3,4) = 1; else = NA"
 
 ver_a <- ver_a %>% mutate(
 	var_name = c("q18j", "Q18K", "q11k", "q14k", "q8b", "q5c", "q30d", "q17k", 
-				 "q44a", "q11"),
+				 "q44a", "q11"), # does q44a correspond to 1999 data?
 	weight = c("weight", "WEIGHT", rep("weight", 8)),
 	rc = c(rep(rc4, 4), rep(rc2, 3), rc4, rep(rc2, 2)),
 	version = "A",
