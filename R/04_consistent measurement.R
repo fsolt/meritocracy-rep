@@ -15,7 +15,7 @@ ipak(packages)
 
 # Loading data
 
-dt99 <- read.dta("./data/merit/version_a/1999 typo/typo99.dta", convert.factors = F) # Q.18(T).k
+dt99 <- read.dta("./data/merit/version_a/1999 typo/typo99.dta", convert.factors = F) # Q.18(T).j
 # CATEGORIES:
 #   
 # 1	Statement #1 — strongly
@@ -121,7 +121,7 @@ dt14_2 <- read.spss("./data/merit/version_a/2014 Polarization/Polarization 2014 
 library(car)
 
 dt_va <- list()
-dt_va[["1999"]] <- data.frame(value = recode(dt99$q18k, "c(1,2) = 1; c(3,4) = 0; else = NA"), weight = dt99$weight) # 1999 survey may have the wrong coding, 3, 4 = strongly agree
+dt_va[["1999"]] <- data.frame(value = recode(dt99$q18j, "c(1,2) = 1; c(3,4) = 0; else = NA"), weight = dt99$weight) # 1999 survey may have the wrong coding, 3, 4 = strongly agree
 
 dt_va[["2000"]] <- data.frame(value = recode(dt00$Q18K, "c('Statement #1 -  strongly','Statement #1 - not strongly') = 0; c('Statement #2 -  strongly', 'Statement #2 -  not strongly') = 1; else = NA") %>% as.numeric() - 1, weight = dt00$WEIGHT)
 
