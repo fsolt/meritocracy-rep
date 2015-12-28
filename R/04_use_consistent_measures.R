@@ -123,9 +123,9 @@ ver_all2$njl[is.na(ver_all2$njl)] <- "D"
 ggplot(ver_all2, aes(x = year, y = value, color = version)) +
  	scale_color_manual(values = c(A = "red", B = "darkgreen", C = "navy")) +
  	scale_fill_manual(values = c(A = "red", B = "darkgreen", C = "navy", D = "white")) +
-  geom_errorbar(aes(ymin=value - 1.96 * se, ymax=value + 1.96 * se), width=.1) +
-	geom_line() +
-	geom_point(aes(fill = njl), shape = 21, na.rm = TRUE, size = 3) +
+  geom_errorbar(aes(ymin=value - 1.96 * se, ymax=value + 1.96 * se), width=.1, position = position_dodge(width = 0.08)) +
+	geom_line(position = position_dodge(width = 0.08)) +
+	geom_point(aes(fill = njl), shape = 21, na.rm = TRUE, size = 3, position = position_dodge(width = 0.08)) +
 	scale_x_continuous(breaks=1999:2012, labels=1999:2012) +
 	theme_bw() +
 	theme(axis.text.x  = element_text(angle=80, vjust=0.6),
